@@ -13,15 +13,6 @@ public class CategoriesController : BaseCRUDController<CategoryResponse, Categor
     {
     }
 
-    [HttpPost("ExceptionTestingInsert")]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<CategoryResponse>> ExceptionTestingInsert([FromBody] CategoriesInsertRequest request)
-    {
-        var result = await _service.ExceptionTestingInsertAsync(request);
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
-    }
-
     [AllowAnonymous]
     public override Task<PageResult<CategoryResponse>> GetAll([FromQuery] CategorySearchObject? search)
     {

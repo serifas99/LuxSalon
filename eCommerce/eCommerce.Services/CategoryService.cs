@@ -36,31 +36,6 @@ namespace eCommerce.Services
             return query;
         }
 
-        public Task<CategoryResponse> ExceptionTestingInsertAsync(CategoriesInsertRequest request)
-        {
-            if (request.Name.Length < 3)
-            {
-                throw new ClinetException("Category name must be at least 3 characters long.");
-            }
-
-            var entity = MapInsertRequestToEntity(request);
-
-            // Set the Id property
-            var entityType = entity.GetType();
-            var idProperty = entityType.GetProperty("Id");
-      
-
-            // Set CreatedAt if exists
-            var createdAtProperty = entityType.GetProperty("CreatedAt");
-            if (createdAtProperty?.CanWrite == true)
-            {
-                createdAtProperty.SetValue(entity, DateTime.UtcNow);
-            }
-
-            var dataSource = this._dbContext.Set<Category>();
-            dataSource.Add(entity);
-
-            return Task.FromResult(_mapper.Map<CategoryResponse>(entity));
-        }
+       
     }
 }

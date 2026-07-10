@@ -6,7 +6,6 @@ namespace eCommerce.Services
 {
     public interface ICategoryService : IBaseCRUDService<CategoryResponse, CategorySearchObject, CategoriesInsertRequest, CategoriesUpdateRequest>
     {
-        Task<CategoryResponse> ExceptionTestingInsertAsync(CategoriesInsertRequest request);
 
     }
 }
