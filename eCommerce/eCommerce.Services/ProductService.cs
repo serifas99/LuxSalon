@@ -63,18 +63,6 @@ public class ProductService : BaseReadService<Product, ProductResponse, ProductS
         return query;
     }
 
-    public Task<ProductResponse> GetWithMaxNameAsync(ProductSearchObject? search = null)
-    {
-        IEnumerable<Product> query =  _dbContext.Set<Product>();
-        query = ApplyFilters(query, search);
-
-        var productWithMaxName = query.OrderByDescending(p => p.Name.Length).First();
-
-        var response = _mapper.Map<ProductResponse>(productWithMaxName);
-        return Task.FromResult(response);
-
-    }
-
     public async Task<ProductResponse> ActivateAsync(int id)
     {
         var entity = await _dbContext.Products.FindAsync(id);
