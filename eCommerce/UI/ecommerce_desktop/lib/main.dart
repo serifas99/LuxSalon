@@ -8,9 +8,20 @@ import 'package:ecommerce_desktop/utils/utils_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'screens/dashboard_screen.dart';
 import 'providers/asset_provider.dart';
 import 'providers/category_provider.dart';
 import 'providers/user_provider.dart';
+import 'providers/usluga_kategorija_provider.dart';
+import 'providers/usluga_provider.dart';
+import 'providers/frizer_provider.dart';
+import 'providers/termin_provider.dart';
+import 'services/signalr_service.dart';
+
+/// Globalni kljuc kako bismo mogli prikazati SnackBar (npr. za live notifikaciju)
+/// iz bilo kojeg dijela aplikacije, bez obzira na trenutni ekran.
+final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 void main() {
   runApp(
@@ -24,6 +35,10 @@ void main() {
         ChangeNotifierProvider(create: (_)=> CategoryProvider()),
         ChangeNotifierProvider(create: (_)=> UserProvider()),
         ChangeNotifierProvider(create: (_)=> ProductReviewProvider()),
+        ChangeNotifierProvider(create: (_)=> UslugaKategorijaProvider()),
+        ChangeNotifierProvider(create: (_)=> UslugaProvider()),
+        ChangeNotifierProvider(create: (_)=> FrizerProvider()),
+        ChangeNotifierProvider(create: (_)=> TerminProvider()),
       ],
       child: const MyApp()));
 }
@@ -36,6 +51,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      scaffoldMessengerKey: rootScaffoldMessengerKey,
       title: 'Flutter Demo',
       theme: ThemeData(
         // This is the theme of your application.
@@ -109,7 +125,8 @@ class LoginScreen extends StatelessWidget {
                         AuthProvider authProvider = Provider.of<AuthProvider>(context, listen: false);
                         try {
                           await authProvider.login(_usernameController.text, _passwordController.text);
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => ProductList()));
+                          _pokreniSignalR();
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => DashboardScreen()));
                         } on Exception catch (e) {
                           alertBox(context, "Error", e.toString());
                         }
@@ -124,6 +141,22 @@ class LoginScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Pokrece SignalR konekciju nakon uspjesnog logina i postavlja callback koji
+/// prikazuje SnackBar cim stigne nova notifikacija uzivo (bez rucnog refresha).
+void _pokreniSignalR() {
+  SignalRService.instance.onNotifikacija = (notifikacija) {
+    final naslov = notifikacija['naslov']?.toString() ?? 'Nova notifikacija';
+    final poruka = notifikacija['poruka']?.toString() ?? '';
+    rootScaffoldMessengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Text(poruka.isEmpty ? naslov : '$naslov\n$poruka'),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  };
+  SignalRService.instance.connect();
 }
 
 class MyHomePage extends StatefulWidget {

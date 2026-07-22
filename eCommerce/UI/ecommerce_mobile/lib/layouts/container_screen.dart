@@ -1,10 +1,8 @@
-import 'package:ecommerce_mobile/providers/cart_provider.dart';
-import 'package:ecommerce_mobile/screens/cart_list_screen.dart';
-import 'package:ecommerce_mobile/screens/category_list_screen.dart';
-import 'package:ecommerce_mobile/screens/product_list_screen.dart';
+import 'package:ecommerce_mobile/screens/home_screen.dart';
+import 'package:ecommerce_mobile/screens/moji_termini_screen.dart';
+import 'package:ecommerce_mobile/screens/notifikacije_screen.dart';
 import 'package:ecommerce_mobile/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 class ContainerScreen extends StatefulWidget {
   const ContainerScreen({super.key});
@@ -15,44 +13,24 @@ class ContainerScreen extends StatefulWidget {
 
 class _ContainerScreenState extends State<ContainerScreen> {
   int _selectedIndex = 0;
-  bool isIndexStacked = false;
-  int _previousCartCount = 0;
-  late CartProvider _cartProvider;
 
-  @override
-  void initState() {
-    super.initState();
-    _cartProvider = Provider.of<CartProvider>(context, listen: false);
-    _previousCartCount = _totalQuantity(_cartProvider);
-    _cartProvider.addListener(_onCartChanged);
-  }
-
-  @override
-  void dispose() {
-    _cartProvider.removeListener(_onCartChanged);
-    super.dispose();
-  }
-
-  int _totalQuantity(CartProvider cartProvider) {
-    return cartProvider.cart.items.fold(0, (sum, item) => sum + item.quantity);
-  }
-
-  void _onCartChanged() {
-    final newCount = _totalQuantity(_cartProvider);
-    if (newCount > _previousCartCount) {
-      print('Item added to cart. Total items in cart: $newCount');
+  // Namjerno NE koristimo IndexedStack: on bi zadrzao svaki ekran zauvijek
+  // "zivim" u memoriji, pa bi npr. "Moji termini" ucitao podatke samo JEDNOM
+  // (kad se app prvi put otvori) i nikad se ne bi osvjezio novim terminima.
+  // Ovako se svaki put kad se predje na tab kreira nov ekran -> nov initState -> svjez fetch.
+  Widget _trenutniEkran() {
+    switch (_selectedIndex) {
+      case 1:
+        return const MojiTerminiScreen();
+      case 2:
+        return const NotifikacijeScreen();
+      case 3:
+        return const ProfileScreen();
+      case 0:
+      default:
+        return const HomeScreen();
     }
-    setState(() {
-      _previousCartCount = newCount;
-    });
   }
-
-  List<Widget> get _widgetOptions => [
-    ProductListScreen(),
-    CategoryListScreen(),
-    CartListScreen(onGoToHome: () => _onItemTapped(0)),
-    ProfileScreen(),
-  ];
 
   void _onItemTapped(int index) {
     setState(() {
@@ -63,29 +41,16 @@ class _ContainerScreenState extends State<ContainerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: isIndexStacked
-          ? IndexedStack(index: _selectedIndex, children: _widgetOptions)
-          : _widgetOptions.elementAt(_selectedIndex),
+      body: _trenutniEkran(),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        items: <BottomNavigationBarItem>[
-          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.category),
-            label: 'Categories',
-          ),
+        selectedItemColor: Colors.red,
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Početna'),
+          BottomNavigationBarItem(icon: Icon(Icons.event), label: 'Termini'),
           BottomNavigationBarItem(
-            icon: Icon(
-              _previousCartCount > 0
-                  ? Icons.shopping_cart
-                  : Icons.shopping_cart_outlined,
-            ),
-            label: 'Cart',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+              icon: Icon(Icons.notifications), label: 'Obavještenja'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
         ],
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,

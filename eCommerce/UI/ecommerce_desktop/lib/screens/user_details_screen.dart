@@ -55,11 +55,24 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
               children: [
                 _buildHeader(theme),
                 const SizedBox(height: 24),
-                _buildPersonalSection(theme),
-                const SizedBox(height: 16),
-                _buildAccountSection(theme),
-                const SizedBox(height: 16),
-                _buildStatusSection(theme),
+                // Sva polja (lično, nalog, status) moraju biti unutar JEDNOG
+                // FormBuilder-a da bi se sve zajedno pokupilo prilikom čuvanja.
+                // Ranije su Account Details i Account Status bili van FormBuilder-a
+                // pa se username/email/isActive nikad nisu slali na server.
+                FormBuilder(
+                  key: _formKey,
+                  initialValue: _initialValue,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildPersonalSection(theme),
+                      const SizedBox(height: 16),
+                      _buildAccountSection(theme),
+                      const SizedBox(height: 16),
+                      _buildStatusSection(theme),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 24),
                 _buildActions(theme),
               ],
@@ -153,36 +166,32 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
       theme: theme,
       title: 'Personal Information',
       icon: Icons.badge_outlined,
-      child: FormBuilder(
-        key: _formKey,
-        initialValue: _initialValue,
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: FormBuilderTextField(
-                    name: 'firstName',
-                    decoration: _inputDecoration('First Name', Icons.person_outline),
-                  ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: FormBuilderTextField(
+                  name: 'firstName',
+                  decoration: _inputDecoration('First Name', Icons.person_outline),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: FormBuilderTextField(
-                    name: 'lastName',
-                    decoration: _inputDecoration('Last Name', Icons.person_outline),
-                  ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: FormBuilderTextField(
+                  name: 'lastName',
+                  decoration: _inputDecoration('Last Name', Icons.person_outline),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            FormBuilderTextField(
-              name: 'phoneNumber',
-              decoration: _inputDecoration('Phone Number', Icons.phone_outlined),
-              keyboardType: TextInputType.phone,
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          FormBuilderTextField(
+            name: 'phoneNumber',
+            decoration: _inputDecoration('Phone Number', Icons.phone_outlined),
+            keyboardType: TextInputType.phone,
+          ),
+        ],
       ),
     );
   }

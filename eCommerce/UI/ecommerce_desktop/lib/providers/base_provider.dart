@@ -10,6 +10,7 @@ import '../utils/api_client_exception.dart';
 
 abstract class BaseProvider<T> with ChangeNotifier {
   static String? _baseUrl;
+  static String? get baseUrl => _baseUrl;
   String _endpoint = "";
 
   BaseProvider(String endpoint) {
@@ -91,6 +92,19 @@ abstract class BaseProvider<T> with ChangeNotifier {
     } else {
       throw new Exception("Unknown error");
     }
+  }
+
+  /// Poziva custom POST akciju na entitetu, npr. Termin/{id}/Potvrdi (bez tijela zahtjeva).
+  Future<T> customAction(int id, String action) async {
+    var url = "$_baseUrl$_endpoint/$id/$action";
+    var uri = Uri.parse(url);
+    var headers = createHeaders();
+
+    var response = await http.post(uri, headers: headers);
+
+    validateResponse(response);
+    var data = jsonDecode(response.body);
+    return fromJson(data);
   }
 
   Future remove(int id) async {

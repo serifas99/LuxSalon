@@ -1,4 +1,6 @@
 using eCommerce.Common.Services.CryptoService;
+using eCommerce.Common.Services.Messaging;
+using eCommerce.Common.Services.Payments;
 using eCommerce.Model.Requests;
 using eCommerce.Model.Responses;
 using eCommerce.Services;
@@ -6,6 +8,7 @@ using eCommerce.Services.Database;
 using eCommerce.Services.ProductStateMachine;
 using eCommerce.Services.Validators;
 using eCommerce.WebAPI.Filters;
+using eCommerce.WebAPI.Hubs;
 using eCommerce.WebAPI.Services;
 using eCommerce.WebAPI.Services.AccessManager;
 using FluentValidation;
@@ -55,6 +58,22 @@ TypeAdapterConfig<Order, OrderResponse>.NewConfig()
 TypeAdapterConfig<OrderItem, OrderItemResponse>.NewConfig()
     .Map(dest => dest.ProductName, src => src.Product != null ? src.Product.Name : string.Empty);
 
+// LuxSalon mappings
+TypeAdapterConfig<UslugaKategorija, UslugaKategorijaResponse>.NewConfig().IgnoreNullValues(true);
+TypeAdapterConfig<Usluga, UslugaResponse>.NewConfig()
+    .Map(dest => dest.UslugaKategorijaNaziv, src => src.UslugaKategorija != null ? src.UslugaKategorija.Naziv : null);
+TypeAdapterConfig<Frizer, FrizerResponse>.NewConfig()
+    .Map(dest => dest.ImePrezime, src => src.User != null ? $"{src.User.FirstName} {src.User.LastName}".Trim() : string.Empty)
+    .Map(dest => dest.Email, src => src.User != null ? src.User.Email : null)
+    .Map(dest => dest.UslugaIds, src => src.FrizerUsluge != null ? src.FrizerUsluge.Select(fu => fu.UslugaId).ToList() : new List<int>());
+TypeAdapterConfig<Termin, TerminResponse>.NewConfig()
+    .Map(dest => dest.Status, src => src.Status.ToString())
+    .Map(dest => dest.KlijentImePrezime, src => src.Klijent != null ? $"{src.Klijent.FirstName} {src.Klijent.LastName}".Trim() : null)
+    .Map(dest => dest.FrizerImePrezime, src => src.Frizer != null && src.Frizer.User != null ? $"{src.Frizer.User.FirstName} {src.Frizer.User.LastName}".Trim() : null)
+    .Map(dest => dest.UslugaNaziv, src => src.Usluga != null ? src.Usluga.Naziv : null);
+TypeAdapterConfig<Notifikacija, NotifikacijaResponse>.NewConfig()
+    .Map(dest => dest.Tip, src => src.Tip.ToString());
+
 
 // register application services
 builder.Services.AddScoped<IProductService, ProductService>();
@@ -81,8 +100,24 @@ builder.Services.AddScoped<IAccessManager, AccessManager>();
 
 builder.Services.AddScoped<ICryptoService, CryptoService>();
 
+builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
+
+builder.Services.AddScoped<eCommerce.Common.Services.Realtime.IRealtimeNotifier, SignalRRealtimeNotifier>();
+
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<IPayPalClient, PayPalClient>();
+builder.Services.AddScoped<IPlacanjeService, PlacanjeService>();
+
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
+
+// LuxSalon services
+builder.Services.AddScoped<IUslugaKategorijaService, UslugaKategorijaService>();
+builder.Services.AddScoped<IUslugaService, UslugaService>();
+builder.Services.AddScoped<IFrizerService, FrizerService>();
+builder.Services.AddScoped<ITerminService, TerminService>();
+builder.Services.AddScoped<INotifikacijaService, NotifikacijaService>();
+builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 
 builder.Services.AddScoped<IValidator<ProductTypeInsertRequest>, ProductTypeInsertValidator>();
 builder.Services.AddScoped<IValidator<ProductTypeUpdateRequest>, ProductTypeUpdateValidator>();
@@ -96,6 +131,18 @@ builder.Services.AddScoped<IValidator<AssetInsertRequest>, AssetInsertValidator>
 builder.Services.AddScoped<IValidator<AssetUpdateRequest>, AssetUpdateValidator>();
 builder.Services.AddScoped<IValidator<ProductReviewInsertRequest>, ProductReviewInsertValidator>();
 builder.Services.AddScoped<IValidator<ProductReviewUpdateRequest>, ProductReviewUpdateValidator>();
+
+// LuxSalon validators
+builder.Services.AddScoped<IValidator<UslugaKategorijaInsertRequest>, UslugaKategorijaInsertValidator>();
+builder.Services.AddScoped<IValidator<UslugaKategorijaUpdateRequest>, UslugaKategorijaUpdateValidator>();
+builder.Services.AddScoped<IValidator<UslugaInsertRequest>, UslugaInsertValidator>();
+builder.Services.AddScoped<IValidator<UslugaUpdateRequest>, UslugaUpdateValidator>();
+builder.Services.AddScoped<IValidator<FrizerInsertRequest>, FrizerInsertValidator>();
+builder.Services.AddScoped<IValidator<FrizerUpdateRequest>, FrizerUpdateValidator>();
+builder.Services.AddScoped<IValidator<TerminInsertRequest>, TerminInsertValidator>();
+builder.Services.AddScoped<IValidator<TerminUpdateRequest>, TerminUpdateValidator>();
+builder.Services.AddScoped<IValidator<NotifikacijaInsertRequest>, NotifikacijaInsertValidator>();
+builder.Services.AddScoped<IValidator<NotifikacijaUpdateRequest>, NotifikacijaUpdateValidator>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -118,8 +165,29 @@ builder.Services.AddAuthentication(options => // dodavanje authentfikacije i aut
         ValidateIssuerSigningKey = true,
         ClockSkew = TimeSpan.Zero
     };
+
+    // SignalR (WebSocket) konekcije ne mogu slati Authorization header na handshake,
+    // pa Flutter klijenti salju JWT kao ?access_token=... u query stringu - ovdje ga
+    // "prebacujemo" da standardna JWT validacija iznad i dalje radi kao i za obicne API pozive.
+    o.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
 });
 builder.Services.AddAuthorization();
+
+builder.Services.AddSignalR();
 
 
 builder.Services.AddEndpointsApiExplorer();
@@ -129,8 +197,8 @@ builder.Services.AddSwaggerGen(
         options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
         {
             Version = "v1",
-            Title = "eCommerce API",
-            Description = "API for managing products and categories in the eCommerce application"
+            Title = "LuxSalon API",
+            Description = "API za upravljanje uslugama, frizerima i terminima u LuxSalon aplikaciji"
         });
 
         var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
@@ -157,6 +225,16 @@ builder.Services.AddSwaggerGen(
                 });
     });
 
+// Dozvoljava Flutter web (browser) build-u da poziva API - desktop/mobile (native) build ne prolazi kroz CORS,
+// ali web build izvrsava fetch pozive iz browsera pa treba eksplicitnu dozvolu. OK za lokalni razvoj/seminarski.
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -172,10 +250,14 @@ var app = builder.Build();
 
 //app.UseHttpsRedirection();
 
+app.UseCors("AllowAll");
+
 app.UseAuthentication();
 
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<NotifikacijaHub>("/hubs/notifikacije");
 
 app.Run();

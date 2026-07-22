@@ -14,5 +14,19 @@ services:
     volumes:
       - sqlserver_data:/var/opt/mssql
 
+  luxsalon-rabbitmq:
+    image: rabbitmq:3-management
+    container_name: luxsalon-rabbitmq
+    ports:
+      - "5672:5672"   # AMQP (koristi ga backend i worker)
+      - "15672:15672" # Management UI - http://localhost:15672 (guest/guest)
+
+  luxsalon-mailhog:
+    image: mailhog/mailhog
+    container_name: luxsalon-mailhog
+    ports:
+      - "1025:1025"   # SMTP - koristi ga eCommerce.Subscriber za slanje "emailova"
+      - "8025:8025"   # Web UI - http://localhost:8025 (ovdje se vide poslani emailovi)
+
 volumes:
   sqlserver_data:

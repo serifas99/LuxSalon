@@ -8,6 +8,13 @@ import '../main.dart';
 import '../providers/auth_provider.dart';
 import '../screens/category_list.dart';
 import '../screens/user_list.dart';
+import '../screens/dashboard_screen.dart';
+import '../screens/usluga_kategorija_list.dart';
+import '../screens/usluga_list.dart';
+import '../screens/frizer_list.dart';
+import '../screens/termin_list.dart';
+import '../screens/izvjestaji_screen.dart';
+import '../services/signalr_service.dart';
 import '../utils/utils_widgets.dart';
 
 class MasterScreen extends StatefulWidget {
@@ -44,43 +51,52 @@ class _MasterScreenState extends State<MasterScreen> {
               ),
             ),
             ListTile(
-              leading: Icon(Icons.home),
-              title: Text('Home'),
+              leading: Icon(Icons.dashboard),
+              title: Text('Pregled'),
               onTap: () {
-                // Handle Home navigation
-                Navigator.push(context, MaterialPageRoute(builder: (context)=> testScreen("Home", "TODO add home screen")));
+                Navigator.push(context, MaterialPageRoute(builder: (context)=> DashboardScreen()));
               },
             ),
             ListTile(
-              leading: Icon(Icons.shopping_basket),
-              title: Text('Products'),
+              leading: Icon(Icons.event),
+              title: Text('Termini'),
               onTap: () {
-                // Handle Home navigation
-                Navigator.push(context, MaterialPageRoute(builder: (context)=> ProductList()));
+                Navigator.push(context, MaterialPageRoute(builder: (context)=> TerminList()));
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.content_cut),
+              title: Text('Usluge'),
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context)=> UslugaList()));
               },
             ),
             ListTile(
               leading: Icon(Icons.category),
-              title: Text('Categories'),
+              title: Text('Kategorije usluga'),
               onTap: () {
-                // Handle Categories navigation
-                Navigator.push(context, MaterialPageRoute(builder: (context)=> CategoryList()));
+                Navigator.push(context, MaterialPageRoute(builder: (context)=> UslugaKategorijaList()));
               },
             ),
-           
+            ListTile(
+              leading: Icon(Icons.badge_outlined),
+              title: Text('Zaposleni (frizeri)'),
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context)=> FrizerList()));
+              },
+            ),
             ListTile(
               leading: Icon(Icons.people),
-              title: Text('Users'),
+              title: Text('Klijenti'),
               onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => UserList()));
               },
             ),
             ListTile(
-              leading: Icon(Icons.reviews),
-              title: Text('Reviews'),
+              leading: Icon(Icons.picture_as_pdf),
+              title: Text('Izvještaji'),
               onTap: () {
-                // Handle Cart navigation
-                Navigator.push(context, MaterialPageRoute(builder: (context)=> ReviewList()));
+                Navigator.push(context, MaterialPageRoute(builder: (context)=> IzvjestajiScreen()));
               },
             ),
             ListTile(
@@ -89,14 +105,6 @@ class _MasterScreenState extends State<MasterScreen> {
               onTap: () {
                 // Handle Profile navigation
                 Navigator.push(context, MaterialPageRoute(builder: (context)=> testScreen("Profile", "TODO add profile screen")));
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.pending),
-              title: Text('REMOVE LATER'),
-              onTap: () {
-                // Handle Profile navigation
-               Navigator.push(context, MaterialPageRoute(builder: (context) => ProductDetailsScreen()));
               },
             ),
             ListTile(
@@ -120,6 +128,7 @@ class _MasterScreenState extends State<MasterScreen> {
                               AuthProvider authProvider = context
                                   .read<AuthProvider>();
 
+                              SignalRService.instance.disconnect();
                               authProvider.logout();
 
                               //throw Exception("Logout successful");

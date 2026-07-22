@@ -189,6 +189,173 @@ namespace eCommerce.Services.Migrations
                         });
                 });
 
+            modelBuilder.Entity("eCommerce.Services.Database.Frizer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Biografija")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Specijalizacija")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Frizeri");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Biografija = "10 godina iskustva u šišanju i farbanju.",
+                            CreatedAt = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Specijalizacija = "Kosa - šišanje i farbanje",
+                            UserId = 6
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Biografija = "Specijalista za njegu lica, ruku i nogu.",
+                            CreatedAt = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Specijalizacija = "Njega lica, manikura, pedikura",
+                            UserId = 7
+                        });
+                });
+
+            modelBuilder.Entity("eCommerce.Services.Database.FrizerUsluga", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("FrizerId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UslugaId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FrizerId");
+
+                    b.HasIndex("UslugaId");
+
+                    b.ToTable("FrizerUsluge");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            FrizerId = 1,
+                            UslugaId = 1
+                        },
+                        new
+                        {
+                            Id = 2,
+                            FrizerId = 1,
+                            UslugaId = 2
+                        },
+                        new
+                        {
+                            Id = 3,
+                            FrizerId = 1,
+                            UslugaId = 3
+                        },
+                        new
+                        {
+                            Id = 4,
+                            FrizerId = 1,
+                            UslugaId = 4
+                        },
+                        new
+                        {
+                            Id = 5,
+                            FrizerId = 2,
+                            UslugaId = 5
+                        },
+                        new
+                        {
+                            Id = 6,
+                            FrizerId = 2,
+                            UslugaId = 6
+                        },
+                        new
+                        {
+                            Id = 7,
+                            FrizerId = 2,
+                            UslugaId = 7
+                        },
+                        new
+                        {
+                            Id = 8,
+                            FrizerId = 2,
+                            UslugaId = 8
+                        });
+                });
+
+            modelBuilder.Entity("eCommerce.Services.Database.Notifikacija", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("KorisnikId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Naslov")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Poruka")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("Procitano")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("TerminId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Tip")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KorisnikId");
+
+                    b.HasIndex("TerminId");
+
+                    b.ToTable("Notifikacije");
+                });
+
             modelBuilder.Entity("eCommerce.Services.Database.Order", b =>
                 {
                     b.Property<int>("Id")
@@ -286,6 +453,48 @@ namespace eCommerce.Services.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("OrderItems");
+                });
+
+            modelBuilder.Entity("eCommerce.Services.Database.Placanje", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DatumPlacanja")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DatumPovrata")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("Iznos")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("PaypalOrderId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PaypalTransactionId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TerminId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TerminId")
+                        .IsUnique();
+
+                    b.ToTable("Placanja");
                 });
 
             modelBuilder.Entity("eCommerce.Services.Database.Product", b =>
@@ -938,7 +1147,65 @@ namespace eCommerce.Services.Migrations
                             Description = "Default customer role",
                             IsActive = true,
                             Name = "Customer"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CreatedAt = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Zaposlenik koji izvodi usluge",
+                            IsActive = true,
+                            Name = "Frizer"
                         });
+                });
+
+            modelBuilder.Entity("eCommerce.Services.Database.Termin", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Cijena")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DatumVrijeme")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("FrizerId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("KlijentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Napomena")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TrajanjeMinuta")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UslugaId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FrizerId");
+
+                    b.HasIndex("KlijentId");
+
+                    b.HasIndex("UslugaId");
+
+                    b.ToTable("Termini");
                 });
 
             modelBuilder.Entity("eCommerce.Services.Database.UnitOfMeasure", b =>
@@ -1123,6 +1390,30 @@ namespace eCommerce.Services.Migrations
                             PasswordHash = "Ov4LxpWKXXV9dwMYvBgqODdzIt0=",
                             PasswordSalt = "KtWF6g7SemBqs4nVWV4Ziw==",
                             Username = "customer2"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            CreatedAt = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Email = "frizer1@luxsalon.com",
+                            FirstName = "Amina",
+                            IsActive = true,
+                            LastName = "Hairstyle",
+                            PasswordHash = "uT1mnLhuBI0P/NNG2qpLRhn+2+4=",
+                            PasswordSalt = "t01xsyErjwiNT3KKqgW76g==",
+                            Username = "frizer1"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            CreatedAt = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Email = "frizer2@luxsalon.com",
+                            FirstName = "Damir",
+                            IsActive = true,
+                            LastName = "Stilist",
+                            PasswordHash = "RJDZItzNyYVtz0clN6Ke4OIVBFw=",
+                            PasswordSalt = "SNnJGci6It1/4Rjv+3ri+Q==",
+                            Username = "frizer2"
                         });
                 });
 
@@ -1186,6 +1477,229 @@ namespace eCommerce.Services.Migrations
                             DateAssigned = new DateTime(2026, 3, 9, 0, 0, 0, 0, DateTimeKind.Utc),
                             RoleId = 2,
                             UserId = 5
+                        },
+                        new
+                        {
+                            Id = 6,
+                            DateAssigned = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            RoleId = 3,
+                            UserId = 6
+                        },
+                        new
+                        {
+                            Id = 7,
+                            DateAssigned = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            RoleId = 3,
+                            UserId = 7
+                        });
+                });
+
+            modelBuilder.Entity("eCommerce.Services.Database.Usluga", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Cijena")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Naziv")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Opis")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Tagovi")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("TrajanjeMinuta")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("UslugaKategorijaId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UslugaKategorijaId");
+
+                    b.ToTable("Usluge");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Cijena = 15m,
+                            CreatedAt = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Naziv = "Muško šišanje",
+                            Opis = "Klasično muško šišanje",
+                            Tagovi = "kosa,musko,sisanje",
+                            TrajanjeMinuta = 30,
+                            UslugaKategorijaId = 1
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Cijena = 25m,
+                            CreatedAt = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Naziv = "Žensko šišanje",
+                            Opis = "Šišanje i oblikovanje za žene",
+                            Tagovi = "kosa,zensko,sisanje",
+                            TrajanjeMinuta = 45,
+                            UslugaKategorijaId = 1
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Cijena = 60m,
+                            CreatedAt = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Naziv = "Farbanje kose",
+                            Opis = "Jednobojno farbanje kose",
+                            Tagovi = "kosa,farbanje,boja",
+                            TrajanjeMinuta = 90,
+                            UslugaKategorijaId = 2
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Cijena = 80m,
+                            CreatedAt = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Naziv = "Pramenovi",
+                            Opis = "Melirani pramenovi",
+                            Tagovi = "kosa,farbanje,pramenovi",
+                            TrajanjeMinuta = 120,
+                            UslugaKategorijaId = 2
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Cijena = 40m,
+                            CreatedAt = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Naziv = "Čišćenje lica",
+                            Opis = "Dubinsko čišćenje lica",
+                            Tagovi = "lice,njega,cisenje",
+                            TrajanjeMinuta = 60,
+                            UslugaKategorijaId = 3
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Cijena = 55m,
+                            CreatedAt = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Naziv = "Anti-age tretman lica",
+                            Opis = "Tretman protiv starenja kože",
+                            Tagovi = "lice,njega,antiage",
+                            TrajanjeMinuta = 60,
+                            UslugaKategorijaId = 3
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Cijena = 20m,
+                            CreatedAt = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Naziv = "Manikura",
+                            Opis = "Klasična manikura",
+                            Tagovi = "ruke,manikura,njega",
+                            TrajanjeMinuta = 40,
+                            UslugaKategorijaId = 4
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Cijena = 25m,
+                            CreatedAt = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Naziv = "Pedikura",
+                            Opis = "Klasična pedikura",
+                            Tagovi = "noge,pedikura,njega",
+                            TrajanjeMinuta = 50,
+                            UslugaKategorijaId = 4
+                        });
+                });
+
+            modelBuilder.Entity("eCommerce.Services.Database.UslugaKategorija", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Naziv")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Opis")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UslugaKategorije");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Naziv = "Šišanje",
+                            Opis = "Šišanje i oblikovanje kose"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CreatedAt = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Naziv = "Farbanje",
+                            Opis = "Bojenje i tretmani boje kose"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CreatedAt = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Naziv = "Njega lica",
+                            Opis = "Tretmani njege i čišćenja lica"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CreatedAt = new DateTime(2026, 7, 20, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Naziv = "Njega ruku i nogu",
+                            Opis = "Manikura i pedikura"
                         });
                 });
 
@@ -1240,6 +1754,54 @@ namespace eCommerce.Services.Migrations
                     b.Navigation("ParentCategory");
                 });
 
+            modelBuilder.Entity("eCommerce.Services.Database.Frizer", b =>
+                {
+                    b.HasOne("eCommerce.Services.Database.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("eCommerce.Services.Database.FrizerUsluga", b =>
+                {
+                    b.HasOne("eCommerce.Services.Database.Frizer", "Frizer")
+                        .WithMany("FrizerUsluge")
+                        .HasForeignKey("FrizerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("eCommerce.Services.Database.Usluga", "Usluga")
+                        .WithMany("FrizerUsluge")
+                        .HasForeignKey("UslugaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Frizer");
+
+                    b.Navigation("Usluga");
+                });
+
+            modelBuilder.Entity("eCommerce.Services.Database.Notifikacija", b =>
+                {
+                    b.HasOne("eCommerce.Services.Database.User", "Korisnik")
+                        .WithMany()
+                        .HasForeignKey("KorisnikId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("eCommerce.Services.Database.Termin", "Termin")
+                        .WithMany()
+                        .HasForeignKey("TerminId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Korisnik");
+
+                    b.Navigation("Termin");
+                });
+
             modelBuilder.Entity("eCommerce.Services.Database.Order", b =>
                 {
                     b.HasOne("eCommerce.Services.Database.User", "User")
@@ -1268,6 +1830,17 @@ namespace eCommerce.Services.Migrations
                     b.Navigation("Order");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("eCommerce.Services.Database.Placanje", b =>
+                {
+                    b.HasOne("eCommerce.Services.Database.Termin", "Termin")
+                        .WithOne("Placanje")
+                        .HasForeignKey("eCommerce.Services.Database.Placanje", "TerminId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Termin");
                 });
 
             modelBuilder.Entity("eCommerce.Services.Database.Product", b =>
@@ -1341,6 +1914,33 @@ namespace eCommerce.Services.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("eCommerce.Services.Database.Termin", b =>
+                {
+                    b.HasOne("eCommerce.Services.Database.Frizer", "Frizer")
+                        .WithMany("Termini")
+                        .HasForeignKey("FrizerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("eCommerce.Services.Database.User", "Klijent")
+                        .WithMany()
+                        .HasForeignKey("KlijentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("eCommerce.Services.Database.Usluga", "Usluga")
+                        .WithMany("Termini")
+                        .HasForeignKey("UslugaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Frizer");
+
+                    b.Navigation("Klijent");
+
+                    b.Navigation("Usluga");
+                });
+
             modelBuilder.Entity("eCommerce.Services.Database.UserRole", b =>
                 {
                     b.HasOne("eCommerce.Services.Database.Role", "Role")
@@ -1360,6 +1960,16 @@ namespace eCommerce.Services.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("eCommerce.Services.Database.Usluga", b =>
+                {
+                    b.HasOne("eCommerce.Services.Database.UslugaKategorija", "UslugaKategorija")
+                        .WithMany("Usluge")
+                        .HasForeignKey("UslugaKategorijaId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("UslugaKategorija");
+                });
+
             modelBuilder.Entity("eCommerce.Services.Database.Cart", b =>
                 {
                     b.Navigation("CartItems");
@@ -1370,6 +1980,13 @@ namespace eCommerce.Services.Migrations
                     b.Navigation("ChildCategories");
 
                     b.Navigation("ProductCategories");
+                });
+
+            modelBuilder.Entity("eCommerce.Services.Database.Frizer", b =>
+                {
+                    b.Navigation("FrizerUsluge");
+
+                    b.Navigation("Termini");
                 });
 
             modelBuilder.Entity("eCommerce.Services.Database.Order", b =>
@@ -1402,6 +2019,11 @@ namespace eCommerce.Services.Migrations
                     b.Navigation("UserRoles");
                 });
 
+            modelBuilder.Entity("eCommerce.Services.Database.Termin", b =>
+                {
+                    b.Navigation("Placanje");
+                });
+
             modelBuilder.Entity("eCommerce.Services.Database.UnitOfMeasure", b =>
                 {
                     b.Navigation("Products");
@@ -1412,6 +2034,18 @@ namespace eCommerce.Services.Migrations
                     b.Navigation("RefreshTokens");
 
                     b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("eCommerce.Services.Database.Usluga", b =>
+                {
+                    b.Navigation("FrizerUsluge");
+
+                    b.Navigation("Termini");
+                });
+
+            modelBuilder.Entity("eCommerce.Services.Database.UslugaKategorija", b =>
+                {
+                    b.Navigation("Usluge");
                 });
 #pragma warning restore 612, 618
         }

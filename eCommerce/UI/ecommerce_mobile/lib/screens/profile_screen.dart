@@ -1,8 +1,7 @@
 import 'package:ecommerce_mobile/providers/auth_provider.dart';
 import 'package:ecommerce_mobile/screens/change_password_screen.dart';
-import 'package:ecommerce_mobile/screens/orders_list_screen.dart';
 import 'package:ecommerce_mobile/screens/profile_settings_screen.dart';
-import 'package:ecommerce_mobile/screens/user_review_screen.dart';
+import 'package:ecommerce_mobile/services/signalr_service.dart';
 import 'package:ecommerce_mobile/utils/utils_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -21,13 +20,12 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   late UserProvider _userProvider;
 
-  late User user;
+  User? user;
 
   bool isLoading = true;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
 
     _userProvider = context.read<UserProvider>();
@@ -38,7 +36,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> initData() async {
     try {
       var result = await _userProvider.getById(
-        int.tryParse(AuthProvider.accessTokenDecoded?['Id'] ?? '0') ?? 0,
+        int.tryParse(AuthProvider.accessTokenDecoded?['Id']?.toString() ?? '0') ?? 0,
       );
 
       setState(() {
@@ -46,24 +44,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
         isLoading = false;
       });
     } on Exception catch (e) {
-      alertBox(context, 'Error', e.toString());
+      alertBox(context, 'Greška', e.toString());
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        child: isLoading
-            ? CircularProgressIndicator()
-            : Column(
-                children: [
-                  SizedBox(height: 40),
-                  _buildProfileInfo(),
-                  SizedBox(height: 40),
-                  _buildProfileMenu(),
-                ],
-              ),
+    return Scaffold(
+      appBar: AppBar(title: const Text("Profil")),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: isLoading || user == null
+              ? const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : Column(
+                  children: [
+                    SizedBox(height: 30),
+                    _buildProfileInfo(),
+                    SizedBox(height: 30),
+                    _buildProfileMenu(),
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -75,22 +79,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Column(
           children: [
             CircleAvatar(
-              backgroundImage: user.profileImageBase64 != null
+              backgroundImage: user!.profileImageBase64 != null
                   ? ImageFromBase64StringWithoutDimnesions(
-                      user.profileImageBase64!,
+                      user!.profileImageBase64!,
                     )
                   : AssetImage("assets/images/no_profile.png"),
-              radius: 70,
+              radius: 60,
             ),
-            const SizedBox(height: 20),
-            // add user name
+            const SizedBox(height: 16),
             Text(
-              "${user.firstName} ${user.lastName}",
+              "${user!.firstName ?? ''} ${user!.lastName ?? ''}",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             Text(
-              user.username ?? "No username",
-              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+              user!.username ?? "",
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -102,42 +105,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(26.0, 0, 26.0, 0),
       child: Card(
-        elevation: 10,
+        elevation: 6,
         child: ListView(
           shrinkWrap: true,
           children: [
             ListTile(
-              leading: Icon(Icons.shopping_bag),
-              title: Text("Your orders"),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const OrdersListScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.reviews),
-              title: Text("Your reviews"),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const UserReviewScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.pending),
-              title: Text("Edit profile"),
+              leading: Icon(Icons.edit_outlined),
+              title: Text("Uredi profil"),
               onTap: () async {
                 var refresh = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => ProfileSettingsScreen(user: user),
+                    builder: (context) => ProfileSettingsScreen(user: user!),
                   ),
                 );
 
@@ -148,7 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             ListTile(
               leading: Icon(Icons.lock_outline),
-              title: Text("Change password"),
+              title: Text("Promijeni lozinku"),
               onTap: () {
                 Navigator.push(
                   context,
@@ -160,26 +139,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             ListTile(
               leading: Icon(Icons.logout),
-              title: Text("Log out"),
+              title: Text("Odjava"),
               onTap: () async {
                 final leave = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: Text("Log out"),
-                    content: Text("Are you sure you want to log out?"),
+                    title: Text("Odjava"),
+                    content: Text("Jeste li sigurni da se želite odjaviti?"),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, false),
-                        child: Text("Cancel"),
+                        child: Text("Otkaži"),
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, true),
-                        child: Text("Log out"),
+                        child: Text("Odjavi se"),
                       ),
                     ],
                   ),
                 );
                 if (leave != true || !mounted) return;
+                await SignalRService.instance.disconnect();
                 context.read<AuthProvider>().logout();
                 if (!mounted) return;
                 Navigator.of(context).pushAndRemoveUntil(

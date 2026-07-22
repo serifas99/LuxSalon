@@ -1,25 +1,35 @@
 import 'package:ecommerce_mobile/layouts/container_screen.dart';
 import 'package:ecommerce_mobile/providers/auth_provider.dart';
-import 'package:ecommerce_mobile/providers/cart_provider.dart';
-import 'package:ecommerce_mobile/providers/category_provider.dart';
-import 'package:ecommerce_mobile/providers/order_provider.dart';
-import 'package:ecommerce_mobile/providers/product_provider.dart';
-import 'package:ecommerce_mobile/providers/product_review_provider.dart';
+import 'package:ecommerce_mobile/providers/frizer_provider.dart';
+import 'package:ecommerce_mobile/providers/notifikacija_provider.dart';
+import 'package:ecommerce_mobile/providers/placanje_provider.dart';
+import 'package:ecommerce_mobile/providers/recommendation_provider.dart';
+import 'package:ecommerce_mobile/providers/termin_provider.dart';
+import 'package:ecommerce_mobile/providers/usluga_kategorija_provider.dart';
+import 'package:ecommerce_mobile/providers/usluga_provider.dart';
 import 'package:ecommerce_mobile/providers/user_provider.dart';
+import 'package:ecommerce_mobile/services/signalr_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+/// Globalni kljuc kako bismo mogli prikazati SnackBar (npr. za live notifikaciju)
+/// iz bilo kojeg dijela aplikacije, bez obzira na trenutni ekran.
+final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 void main() {
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_)=> AuthProvider()),
-        ChangeNotifierProvider(create: (_)=> ProductProvider()),
-        ChangeNotifierProvider(create: (_)=> CartProvider()),
-        ChangeNotifierProvider(create: (_)=> CategoryProvider()),
         ChangeNotifierProvider(create: (_)=> UserProvider()),
-        ChangeNotifierProvider(create: (_)=> OrderProvider()),
-        ChangeNotifierProvider(create: (_)=> ProductReviewProvider()),
+        ChangeNotifierProvider(create: (_)=> UslugaKategorijaProvider()),
+        ChangeNotifierProvider(create: (_)=> UslugaProvider()),
+        ChangeNotifierProvider(create: (_)=> FrizerProvider()),
+        ChangeNotifierProvider(create: (_)=> TerminProvider()),
+        ChangeNotifierProvider(create: (_)=> PlacanjeProvider()),
+        ChangeNotifierProvider(create: (_)=> NotifikacijaProvider()),
+        ChangeNotifierProvider(create: (_)=> RecommendationProvider()),
       ],
       child: const MyApp()));
 }
@@ -31,6 +41,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      scaffoldMessengerKey: rootScaffoldMessengerKey,
       title: 'Flutter Demo',
       theme: ThemeData(
         // This is the theme of your application.
@@ -156,6 +167,7 @@ class LoginPage extends StatelessWidget {
                     try {
                         AuthProvider authProvider = Provider.of<AuthProvider>(context, listen: false);
                         await authProvider.login(_usernameController.text, _passwordController.text);
+                        _pokreniSignalR();
                         Navigator.push(context, MaterialPageRoute(builder: (context) => ContainerScreen()));
                       } on Exception catch (e) {
                         alertBox(context, "Error", e.toString());
@@ -178,6 +190,22 @@ class LoginPage extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Pokrece SignalR konekciju nakon uspjesnog logina i postavlja callback koji
+/// prikazuje SnackBar cim stigne nova notifikacija uzivo (bez rucnog refresha).
+void _pokreniSignalR() {
+  SignalRService.instance.onNotifikacija = (notifikacija) {
+    final naslov = notifikacija['naslov']?.toString() ?? 'Nova notifikacija';
+    final poruka = notifikacija['poruka']?.toString() ?? '';
+    rootScaffoldMessengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Text(poruka.isEmpty ? naslov : '$naslov\n$poruka'),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  };
+  SignalRService.instance.connect();
 }
 
 void alertBox(BuildContext context, String title, String content) {

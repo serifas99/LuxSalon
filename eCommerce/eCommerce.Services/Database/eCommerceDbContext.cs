@@ -25,6 +25,15 @@ namespace eCommerce.Services.Database
         public DbSet<Asset> Assets { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
 
+        // LuxSalon domain
+        public DbSet<UslugaKategorija> UslugaKategorije { get; set; }
+        public DbSet<Usluga> Usluge { get; set; }
+        public DbSet<Frizer> Frizeri { get; set; }
+        public DbSet<FrizerUsluga> FrizerUsluge { get; set; }
+        public DbSet<Termin> Termini { get; set; }
+        public DbSet<Placanje> Placanja { get; set; }
+        public DbSet<Notifikacija> Notifikacije { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
