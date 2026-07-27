@@ -2,6 +2,7 @@ import 'package:ecommerce_desktop/layouts/master_screen.dart';
 import 'package:ecommerce_desktop/models/search_result.dart';
 import 'package:ecommerce_desktop/providers/frizer_provider.dart';
 import 'package:ecommerce_desktop/screens/frizer_details_screen.dart';
+import 'package:ecommerce_desktop/screens/radno_vrijeme_screen.dart';
 import 'package:ecommerce_desktop/utils/utils_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -22,6 +23,9 @@ class _FrizerListState extends State<FrizerList> {
 
   final TextEditingController _imeController = TextEditingController();
 
+  int _page = 1;
+  static const int _pageSize = 10;
+
   @override
   void initState() {
     super.initState();
@@ -30,15 +34,27 @@ class _FrizerListState extends State<FrizerList> {
   }
 
   Future<void> initTable() async {
+    setState(() => isLoading = true);
     try {
-      var data = await _provider.get(filter: {});
+      var data = await _provider.get(filter: {
+        "imePrezime": _imeController.text,
+        "page": _page,
+        "pageSize": _pageSize,
+        "includeTotalCount": true,
+      });
       setState(() {
         result = data;
         isLoading = false;
       });
     } on Exception catch (e) {
+      setState(() => isLoading = false);
       alertBox(context, 'Greška', e.toString());
     }
+  }
+
+  void _idiNaStranicu(int novaStranica) {
+    setState(() => _page = novaStranica);
+    initTable();
   }
 
   @override
@@ -58,16 +74,28 @@ class _FrizerListState extends State<FrizerList> {
   }
 
   Expanded _buildTable() {
+    final totalCount = result?.totalCount ?? 0;
+    final ukupnoStranica =
+        totalCount == 0 ? 1 : ((totalCount - 1) ~/ _pageSize) + 1;
+    final prikazanoOd = totalCount == 0 ? 0 : ((_page - 1) * _pageSize) + 1;
+    final prikazanoDo = totalCount == 0
+        ? 0
+        : (prikazanoOd + (result?.items?.length ?? 0) - 1);
+
     return Expanded(
-      child: SizedBox(
-        width: double.infinity,
-        child: SingleChildScrollView(
-          child: DataTable(
+      child: Column(
+        children: [
+          Expanded(
+            child: SizedBox(
+              width: double.infinity,
+              child: SingleChildScrollView(
+                child: DataTable(
             columns: [
               DataColumn(label: Text("Ime i prezime")),
               DataColumn(label: Text("Email")),
               DataColumn(label: Text("Specijalizacija")),
               DataColumn(label: Text("Aktivan")),
+              DataColumn(label: Text("Radno vrijeme")),
               DataColumn(label: Text("Obriši")),
             ],
             rows: result?.items
@@ -87,6 +115,21 @@ class _FrizerListState extends State<FrizerList> {
                           DataCell(Text(e.email ?? '')),
                           DataCell(Text(e.specijalizacija ?? '')),
                           DataCell(Text(e.isActive == true ? "Da" : "Ne")),
+                          DataCell(
+                            IconButton(
+                              icon: Icon(Icons.schedule),
+                              tooltip: "Uredi radno vrijeme",
+                              onPressed: () async {
+                                var refresh = await Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        RadnoVrijemeScreen(frizer: e),
+                                  ),
+                                );
+                                if (refresh == "reload") initTable();
+                              },
+                            ),
+                          ),
                           DataCell(
                             IconButton(
                               icon: Icon(Icons.delete),
@@ -129,8 +172,33 @@ class _FrizerListState extends State<FrizerList> {
                     )
                     .toList() ??
                 List.empty(),
+                ),
+              ),
+            ),
           ),
-        ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(totalCount == 0
+                  ? "Nema frizera"
+                  : "Prikazano $prikazanoOd do $prikazanoDo od ukupno $totalCount frizera"),
+              const SizedBox(width: 16),
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: _page > 1 ? () => _idiNaStranicu(_page - 1) : null,
+              ),
+              Text("Stranica $_page od $ukupnoStranica"),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: _page < ukupnoStranica
+                    ? () => _idiNaStranicu(_page + 1)
+                    : null,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }
@@ -150,17 +218,9 @@ class _FrizerListState extends State<FrizerList> {
             ),
           ),
           ElevatedButton(
-            onPressed: () async {
-              try {
-                var data = await _provider
-                    .get(filter: {"imePrezime": _imeController.text});
-                setState(() {
-                  result = data;
-                  isLoading = false;
-                });
-              } on Exception catch (e) {
-                alertBox(context, 'Greška', e.toString());
-              }
+            onPressed: () {
+              _page = 1;
+              initTable();
             },
             child: Text("Pretraži"),
           ),

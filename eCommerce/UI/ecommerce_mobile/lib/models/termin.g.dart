@@ -20,6 +20,7 @@ Termin _$TerminFromJson(Map<String, dynamic> json) => Termin(
   trajanjeMinuta: (json['trajanjeMinuta'] as num?)?.toInt(),
   cijena: (json['cijena'] as num?)?.toDouble(),
   status: json['status'] as String?,
+  placanjeStatus: json['placanjeStatus'] as String?,
   napomena: json['napomena'] as String?,
   createdAt: json['createdAt'] == null
       ? null

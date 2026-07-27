@@ -1,6 +1,7 @@
 import 'package:ecommerce_mobile/models/frizer.dart';
 import 'package:ecommerce_mobile/models/search_result.dart';
 import 'package:ecommerce_mobile/models/usluga.dart';
+import 'package:ecommerce_mobile/providers/frizer_ocjena_provider.dart';
 import 'package:ecommerce_mobile/providers/frizer_provider.dart';
 import 'package:ecommerce_mobile/screens/novi_termin_screen.dart';
 import 'package:ecommerce_mobile/utils/utils_widgets.dart';
@@ -33,7 +34,7 @@ class _UslugaDetailsScreenState extends State<UslugaDetailsScreen> {
       final frizeri = await _frizerProvider.get(filter: {
         "uslugaId": widget.usluga.id,
         "isActive": true,
-        "pageSize": 1000,
+        "pageSize": 100,
       });
       if (!mounted) return;
       setState(() {
@@ -113,10 +114,26 @@ class _UslugaDetailsScreenState extends State<UslugaDetailsScreen> {
                     child: ListTile(
                       leading: CircleAvatar(
                         backgroundColor: Colors.red.shade50,
-                        child: Icon(Icons.person, color: Colors.red.shade300),
+                        backgroundImage: (f.profileImageBase64 != null &&
+                                f.profileImageBase64!.isNotEmpty)
+                            ? ImageFromBase64StringWithoutDimnesions(
+                                f.profileImageBase64!)
+                            : null,
+                        child: (f.profileImageBase64 != null &&
+                                f.profileImageBase64!.isNotEmpty)
+                            ? null
+                            : Icon(Icons.person, color: Colors.red.shade300),
                       ),
                       title: Text(f.imePrezime ?? ''),
-                      subtitle: Text(f.specijalizacija ?? ''),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(f.specijalizacija ?? ''),
+                          const SizedBox(height: 2),
+                          _ProsjecnaOcjenaBadge(frizerId: f.id),
+                        ],
+                      ),
                       trailing: ElevatedButton(
                         onPressed: () => _zakazi(f),
                         child: const Text("Zakaži"),
@@ -152,5 +169,38 @@ class _UslugaDetailsScreenState extends State<UslugaDetailsScreen> {
     if (refresh == "reload" && mounted) {
       Navigator.pop(context, "reload");
     }
+  }
+}
+
+/// Prikazuje prosjecnu ocjenu frizera (na osnovu FrizerOcjena unosa klijenata)
+/// pored svakog frizera na listi - GET FrizerOcjena/ProsjecnaOcjena/{frizerId}.
+class _ProsjecnaOcjenaBadge extends StatelessWidget {
+  final int? frizerId;
+
+  const _ProsjecnaOcjenaBadge({required this.frizerId});
+
+  @override
+  Widget build(BuildContext context) {
+    if (frizerId == null) return const SizedBox.shrink();
+
+    return FutureBuilder<double>(
+      future: context.read<FrizerOcjenaProvider>().prosjecnaOcjena(frizerId!),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data == 0) {
+          return const SizedBox.shrink();
+        }
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.star, size: 14, color: Colors.amber.shade700),
+            const SizedBox(width: 3),
+            Text(
+              snapshot.data!.toStringAsFixed(1),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

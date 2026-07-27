@@ -16,6 +16,8 @@ import 'providers/usluga_kategorija_provider.dart';
 import 'providers/usluga_provider.dart';
 import 'providers/frizer_provider.dart';
 import 'providers/termin_provider.dart';
+import 'providers/radno_vrijeme_provider.dart';
+import 'providers/placanje_provider.dart';
 import 'services/signalr_service.dart';
 
 /// Globalni kljuc kako bismo mogli prikazati SnackBar (npr. za live notifikaciju)
@@ -39,6 +41,8 @@ void main() {
         ChangeNotifierProvider(create: (_)=> UslugaProvider()),
         ChangeNotifierProvider(create: (_)=> FrizerProvider()),
         ChangeNotifierProvider(create: (_)=> TerminProvider()),
+        ChangeNotifierProvider(create: (_)=> RadnoVrijemeProvider()),
+        ChangeNotifierProvider(create: (_)=> PlacanjeProvider()),
       ],
       child: const MyApp()));
 }

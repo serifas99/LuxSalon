@@ -6,6 +6,8 @@ import 'package:ecommerce_desktop/models/usluga.dart';
 import 'package:ecommerce_desktop/providers/frizer_provider.dart';
 import 'package:ecommerce_desktop/providers/user_provider.dart';
 import 'package:ecommerce_desktop/providers/usluga_provider.dart';
+import 'package:ecommerce_desktop/screens/user_details_screen.dart';
+import 'package:ecommerce_desktop/utils/utils_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:provider/provider.dart';
@@ -54,10 +56,21 @@ class _FrizerDetailsScreenState extends State<FrizerDetailsScreen> {
   }
 
   Future initForm() async {
-    var usluge = await _uslugaProvider.get(filter: {"pageSize": 1000});
+    var usluge = await _uslugaProvider.get(filter: {"pageSize": 100});
     SearchResult<User>? korisnici;
     if (!_isEditing) {
-      korisnici = await _userProvider.get(filter: {"pageSize": 1000});
+      var sviKorisnici = await _userProvider.get(filter: {"pageSize": 100});
+      var postojeciFrizeri = await _provider.get(filter: {"pageSize": 100});
+      var zauzetiUserIds =
+          (postojeciFrizeri.items ?? []).map((f) => f.userId).toSet();
+
+      // Dropdown ne nudi admine niti korisnike koji vec imaju svoj Frizer profil
+      // (sprjecava duplo dodavanje istog naloga i mijesanje admin naloga sa frizerima).
+      korisnici = SearchResult<User>()
+        ..totalCount = sviKorisnici.totalCount
+        ..items = (sviKorisnici.items ?? [])
+            .where((u) => u.role != "Admin" && !zauzetiUserIds.contains(u.id))
+            .toList();
     }
 
     if (!mounted) return;
@@ -150,12 +163,29 @@ class _FrizerDetailsScreenState extends State<FrizerDetailsScreen> {
       child: Column(
         children: [
           if (_isEditing) ...[
-            // Ime, prezime i email dolaze sa korisničkog naloga i ne mogu se
-            // mijenjati ovdje (to je posao ekrana Klijenti / User Management).
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text("${widget.frizer!.imePrezime ?? ''}  •  ${widget.frizer!.email ?? ''}",
-                  style: theme.textTheme.titleSmall),
+            // Ime, prezime i email dolaze sa korisničkog naloga (User), ne sa Frizer
+            // entiteta, pa se ne uređuju kroz ovu formu - vode na ekran za uređivanje
+            // samog korisničkog naloga (isti ekran koji koristi i "Moj profil").
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                        "${widget.frizer!.imePrezime ?? ''}  •  ${widget.frizer!.email ?? ''}",
+                        style: theme.textTheme.titleSmall),
+                  ),
+                  TextButton.icon(
+                    onPressed: _uredjKorisnickiNalog,
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text("Uredi ime/email"),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16.0),
           ] else ...[
@@ -237,6 +267,30 @@ class _FrizerDetailsScreenState extends State<FrizerDetailsScreen> {
         ),
       ],
     );
+  }
+
+  Future _uredjKorisnickiNalog() async {
+    if (widget.frizer?.userId == null) return;
+    try {
+      final korisnik = await _userProvider.getById(widget.frizer!.userId!);
+      if (!mounted) return;
+      final refresh = await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => UserDetailsScreen(user: korisnik),
+        ),
+      );
+      if (refresh == "reload" && mounted) {
+        // Osvježi listu iza (ime/email su se mogli promijeniti); ovaj ekran ostaje
+        // otvoren sa starim imenom u zaglavlju dok se ponovo ne otvori.
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text(
+                  "Podaci korisničkog naloga su sačuvani. Zatvorite i ponovo otvorite ovaj ekran da vidite promjene ovdje.")),
+        );
+      }
+    } on Exception catch (e) {
+      if (mounted) alertBox(context, "Greška", e.toString());
+    }
   }
 
   Future _save() async {

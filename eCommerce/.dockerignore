@@ -1,0 +1,19 @@
+# Build artefakti - ne trebaju u Docker build kontekstu (i sprjecavaju kopiranje
+# lokalnih/stale binarnih fajlova u kontejner)
+**/bin/
+**/obj/
+**/.vs/
+
+# Tajne - NIKAD ne smiju zavrsiti u Docker image sloju
+**/.env
+**/*.env
+
+# Flutter UI aplikacije - nisu potrebne za backend (WebAPI/Subscriber) image
+UI/
+
+# Git
+**/.git/
+**/.gitignore
+
+# IDE
+**/.idea/

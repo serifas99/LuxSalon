@@ -31,20 +31,15 @@ abstract class BaseProvider<T> with ChangeNotifier {
 
     var response = await http.get(uri, headers: headers);
 
-    if (isValidResponse(response)) {
-      var data = jsonDecode(response.body);
+    validateResponse(response);
+    var data = jsonDecode(response.body);
 
-      var result = SearchResult<T>();
+    var result = SearchResult<T>();
 
-      result.totalCount = data['totalCount'];
-      result.items = List<T>.from(data["items"].map((e) => fromJson(e)));
+    result.totalCount = data['totalCount'];
+    result.items = List<T>.from(data["items"].map((e) => fromJson(e)));
 
-
-      return result;
-    } else {
-      throw new Exception("Unknown error");
-    }
-    // print("response: ${response.request} ${response.statusCode}, ${response.body}");
+    return result;
   }
 
   Future<T> getById(int id) async {
@@ -70,12 +65,9 @@ abstract class BaseProvider<T> with ChangeNotifier {
     var jsonRequest = jsonEncode(request);
     var response = await http.post(uri, headers: headers, body: jsonRequest);
 
-    if (isValidResponse(response)) {
-      var data = jsonDecode(response.body);
-      return fromJson(data);
-    } else {
-      throw new Exception("Unknown error");
-    }
+    validateResponse(response);
+    var data = jsonDecode(response.body);
+    return fromJson(data);
   }
 
   Future<T> update(int id, [dynamic request]) async {
@@ -86,12 +78,9 @@ abstract class BaseProvider<T> with ChangeNotifier {
     var jsonRequest = jsonEncode(request);
     var response = await http.put(uri, headers: headers, body: jsonRequest);
 
-    if (isValidResponse(response)) {
-      var data = jsonDecode(response.body);
-      return fromJson(data);
-    } else {
-      throw new Exception("Unknown error");
-    }
+    validateResponse(response);
+    var data = jsonDecode(response.body);
+    return fromJson(data);
   }
 
   /// Poziva custom POST akciju na entitetu, npr. Termin/{id}/Potvrdi (bez tijela zahtjeva).
@@ -114,26 +103,11 @@ abstract class BaseProvider<T> with ChangeNotifier {
 
     var response = await http.delete(uri, headers: headers);
 
-    if (isValidResponse(response)) {
-      return;
-    } else {
-      throw new Exception("Unknown error");
-    }
+    validateResponse(response);
   }
 
   T fromJson(data) {
     throw Exception("Method not implemented");
-  }
-
-  bool isValidResponse(Response response) {
-    if (response.statusCode < 299) {
-      return true;
-    } else if (response.statusCode == 401) {
-      throw new Exception("Unauthorized");
-    } else {
-      print(response.body);
-      throw new Exception("Something bad happened please try again");
-    }
   }
 
   /// Throws [ApiClientException] with a message from the API when status is not successful.

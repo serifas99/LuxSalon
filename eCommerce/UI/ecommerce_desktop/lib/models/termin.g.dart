@@ -20,6 +20,8 @@ Termin _$TerminFromJson(Map<String, dynamic> json) => Termin(
   trajanjeMinuta: (json['trajanjeMinuta'] as num?)?.toInt(),
   cijena: (json['cijena'] as num?)?.toDouble(),
   status: json['status'] as String?,
+  placanjeStatus: json['placanjeStatus'] as String?,
+  placanjeId: (json['placanjeId'] as num?)?.toInt(),
   napomena: json['napomena'] as String?,
   createdAt: json['createdAt'] == null
       ? null
@@ -41,6 +43,8 @@ Map<String, dynamic> _$TerminToJson(Termin instance) => <String, dynamic>{
   'trajanjeMinuta': instance.trajanjeMinuta,
   'cijena': instance.cijena,
   'status': instance.status,
+  'placanjeStatus': instance.placanjeStatus,
+  'placanjeId': instance.placanjeId,
   'napomena': instance.napomena,
   'createdAt': instance.createdAt?.toIso8601String(),
   'updatedAt': instance.updatedAt?.toIso8601String(),

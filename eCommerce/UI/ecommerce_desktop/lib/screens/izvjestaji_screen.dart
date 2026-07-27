@@ -6,6 +6,7 @@ import 'package:ecommerce_desktop/models/termin.dart';
 import 'package:ecommerce_desktop/providers/frizer_provider.dart';
 import 'package:ecommerce_desktop/providers/termin_provider.dart';
 import 'package:ecommerce_desktop/utils/utils_widgets.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
@@ -28,11 +29,67 @@ class _IzvjestajiScreenState extends State<IzvjestajiScreen> {
 
   bool _generisanje = false;
 
+  // Podaci za grafikone na ekranu (ne za PDF) - po uzoru na mockup iz prijave teme.
+  bool _grafikoniUcitani = false;
+  List<double> _zaradaPoMjesecu = List.filled(12, 0.0);
+  List<MapEntry<String, int>> _najcesceUsluge = [];
+  final int _godinaGrafikona = DateTime.now().year;
+
+  static const List<String> _naziviMjeseci = [
+    "Jan", "Feb", "Mar", "Apr", "Maj", "Jun",
+    "Jul", "Aug", "Sep", "Okt", "Nov", "Dec",
+  ];
+
+  static const List<Color> _bojeSlajseva = [
+    Color(0xFF3A3A3A),
+    Color(0xFFA9825F),
+    Color(0xFF6B6B6B),
+    Color(0xFFD8C3A5),
+    Color(0xFF8C6142),
+  ];
+
   @override
   void initState() {
     super.initState();
     _terminProvider = context.read<TerminProvider>();
     _frizerProvider = context.read<FrizerProvider>();
+    _ucitajGrafikone();
+  }
+
+  Future _ucitajGrafikone() async {
+    try {
+      var termini = await _terminProvider.get(filter: {"pageSize": 100});
+      var items = termini.items ?? [];
+
+      var zarada = List.filled(12, 0.0);
+      for (var t in items) {
+        if ((t.status == "Odradjen" || t.status == "Potvrdjen") &&
+            t.datumVrijeme != null &&
+            t.datumVrijeme!.year == _godinaGrafikona) {
+          zarada[t.datumVrijeme!.month - 1] += (t.cijena ?? 0);
+        }
+      }
+
+      var brojPoUsluzi = <String, int>{};
+      for (var t in items) {
+        if (t.status == "Otkazan") continue;
+        final naziv = t.uslugaNaziv;
+        if (naziv == null || naziv.isEmpty) continue;
+        brojPoUsluzi[naziv] = (brojPoUsluzi[naziv] ?? 0) + 1;
+      }
+      var sortirano = brojPoUsluzi.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+
+      if (!mounted) return;
+      setState(() {
+        _zaradaPoMjesecu = zarada;
+        _najcesceUsluge = sortirano.take(5).toList();
+        _grafikoniUcitani = true;
+      });
+    } on Exception catch (_) {
+      // Grafikoni su dopunski prikaz - ako ucitavanje ne uspije, ekran i dalje
+      // normalno radi (PDF generisanje ostaje nezavisno funkcionalno).
+    }
   }
 
   String _formatDate(DateTime? d) {
@@ -68,52 +125,249 @@ class _IzvjestajiScreenState extends State<IzvjestajiScreen> {
 
     return MasterScreen(
       title: "Izvještaji",
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Period (opciono, za izvještaj o terminima)",
-                style: theme.textTheme.titleSmall),
-            const SizedBox(height: 8),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Period (opciono, za izvještaj o terminima)",
+                  style: theme.textTheme.titleSmall),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(child: _dateField("Od datuma", _odDatuma, (d) {
+                    setState(() => _odDatuma = d);
+                  })),
+                  const SizedBox(width: 16),
+                  Expanded(child: _dateField("Do datuma", _doDatuma, (d) {
+                    setState(() => _doDatuma = d);
+                  })),
+                ],
+              ),
+              const SizedBox(height: 32),
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: [
+                  _reportCard(
+                    icon: Icons.event_note,
+                    title: "Izvještaj o terminima",
+                    description:
+                        "Pregled svih termina u odabranom periodu sa klijentom, frizerom, uslugom, statusom i cijenom.",
+                    onTap: _generisanje ? null : _generisiIzvjestajTermina,
+                  ),
+                  _reportCard(
+                    icon: Icons.bar_chart,
+                    title: "Izvještaj o prihodu po frizeru",
+                    description:
+                        "Broj odrađenih/potvrđenih termina i ukupan prihod po svakom frizeru.",
+                    onTap: _generisanje ? null : _generisiIzvjestajPrihoda,
+                  ),
+                ],
+              ),
+              if (_generisanje) ...[
+                const SizedBox(height: 24),
+                const Center(child: CircularProgressIndicator()),
+              ],
+              if (_grafikoniUcitani) ...[
+                const SizedBox(height: 32),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  crossAxisAlignment: WrapCrossAlignment.start,
+                  children: [
+                    _zaradaPoMjesecuChart(theme),
+                    _najcesceUslugeChart(theme),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _zaradaPoMjesecuChart(ThemeData theme) {
+    final maxY = (_zaradaPoMjesecu.isEmpty
+                ? 0.0
+                : _zaradaPoMjesecu.reduce((a, b) => a > b ? a : b)) *
+            1.2 +
+        1;
+
+    return Container(
+      width: 480,
+      padding: const EdgeInsets.fromLTRB(16, 16, 24, 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Ukupna zarada po mjesecima",
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text("$_godinaGrafikona."),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 220,
+            child: BarChart(
+              BarChartData(
+                minY: 0,
+                maxY: maxY,
+                gridData: const FlGridData(show: true, drawVerticalLine: false),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 44,
+                      getTitlesWidget: (value, meta) =>
+                          Text(value.toInt().toString(),
+                              style: const TextStyle(fontSize: 10)),
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 24,
+                      getTitlesWidget: (value, meta) {
+                        final i = value.toInt();
+                        if (i < 0 || i >= _naziviMjeseci.length) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(_naziviMjeseci[i],
+                              style: const TextStyle(fontSize: 10)),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                barGroups: [
+                  for (int i = 0; i < _zaradaPoMjesecu.length; i++)
+                    BarChartGroupData(x: i, barRods: [
+                      BarChartRodData(
+                        toY: _zaradaPoMjesecu[i],
+                        color: Colors.brown.shade300,
+                        width: 16,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ]),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _najcesceUslugeChart(ThemeData theme) {
+    final ukupno = _najcesceUsluge.fold<int>(0, (s, e) => s + e.value);
+
+    return Container(
+      width: 380,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Najčešće usluge",
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          if (ukupno == 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Text("Nema dovoljno podataka.",
+                  style: TextStyle(color: Colors.grey.shade600)),
+            )
+          else
             Row(
               children: [
-                Expanded(child: _dateField("Od datuma", _odDatuma, (d) {
-                  setState(() => _odDatuma = d);
-                })),
+                SizedBox(
+                  height: 160,
+                  width: 160,
+                  child: PieChart(
+                    PieChartData(
+                      centerSpaceRadius: 40,
+                      sectionsSpace: 2,
+                      sections: [
+                        for (int i = 0; i < _najcesceUsluge.length; i++)
+                          PieChartSectionData(
+                            value: _najcesceUsluge[i].value.toDouble(),
+                            color: _bojeSlajseva[i % _bojeSlajseva.length],
+                            title:
+                                "${(_najcesceUsluge[i].value / ukupno * 100).toStringAsFixed(0)}%",
+                            radius: 34,
+                            titleStyle: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: _dateField("Do datuma", _doDatuma, (d) {
-                  setState(() => _doDatuma = d);
-                })),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (int i = 0; i < _najcesceUsluge.length; i++)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 3),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: _bojeSlajseva[i % _bojeSlajseva.length],
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  _najcesceUsluge[i].key,
+                                  style: const TextStyle(fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 32),
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: [
-                _reportCard(
-                  icon: Icons.event_note,
-                  title: "Izvještaj o terminima",
-                  description:
-                      "Pregled svih termina u odabranom periodu sa klijentom, frizerom, uslugom, statusom i cijenom.",
-                  onTap: _generisanje ? null : _generisiIzvjestajTermina,
-                ),
-                _reportCard(
-                  icon: Icons.bar_chart,
-                  title: "Izvještaj o prihodu po frizeru",
-                  description:
-                      "Broj odrađenih/potvrđenih termina i ukupan prihod po svakom frizeru.",
-                  onTap: _generisanje ? null : _generisiIzvjestajPrihoda,
-                ),
-              ],
-            ),
-            if (_generisanje) ...[
-              const SizedBox(height: 24),
-              const Center(child: CircularProgressIndicator()),
-            ],
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -184,7 +438,7 @@ class _IzvjestajiScreenState extends State<IzvjestajiScreen> {
   Future _generisiIzvjestajTermina() async {
     setState(() => _generisanje = true);
     try {
-      var termini = await _terminProvider.get(filter: {"pageSize": 1000});
+      var termini = await _terminProvider.get(filter: {"pageSize": 100});
       var items = (termini.items ?? []).where((t) {
         if (_odDatuma != null &&
             t.datumVrijeme != null &&
@@ -270,8 +524,8 @@ class _IzvjestajiScreenState extends State<IzvjestajiScreen> {
   Future _generisiIzvjestajPrihoda() async {
     setState(() => _generisanje = true);
     try {
-      var termini = await _terminProvider.get(filter: {"pageSize": 1000});
-      var frizeri = await _frizerProvider.get(filter: {"pageSize": 1000});
+      var termini = await _terminProvider.get(filter: {"pageSize": 100});
+      var frizeri = await _frizerProvider.get(filter: {"pageSize": 100});
 
       var relevantni = (termini.items ?? [])
           .where((t) => t.status == "Odradjen" || t.status == "Potvrdjen")

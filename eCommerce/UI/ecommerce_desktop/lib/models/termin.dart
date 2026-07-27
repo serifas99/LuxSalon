@@ -15,6 +15,12 @@ class Termin {
   final int? trajanjeMinuta;
   final double? cijena;
   final String? status;
+
+  /// Status vezanog Placanja (npr. "Zavrseno") i njegov Id - koristi ih ovaj (desktop)
+  /// app da odluci da li ponuditi "Vrati novac" akciju (Admin/Frizer) na odradjenim
+  /// i placenim terminima.
+  final String? placanjeStatus;
+  final int? placanjeId;
   final String? napomena;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -31,6 +37,8 @@ class Termin {
     this.trajanjeMinuta,
     this.cijena,
     this.status,
+    this.placanjeStatus,
+    this.placanjeId,
     this.napomena,
     this.createdAt,
     this.updatedAt,

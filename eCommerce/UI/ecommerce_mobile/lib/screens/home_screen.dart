@@ -2,10 +2,10 @@ import 'package:ecommerce_mobile/models/search_result.dart';
 import 'package:ecommerce_mobile/models/usluga.dart';
 import 'package:ecommerce_mobile/models/usluga_kategorija.dart';
 import 'package:ecommerce_mobile/models/usluga_preporuka.dart';
-import 'package:ecommerce_mobile/providers/auth_provider.dart';
 import 'package:ecommerce_mobile/providers/recommendation_provider.dart';
 import 'package:ecommerce_mobile/providers/usluga_kategorija_provider.dart';
 import 'package:ecommerce_mobile/providers/usluga_provider.dart';
+import 'package:ecommerce_mobile/screens/novosti_screen.dart';
 import 'package:ecommerce_mobile/screens/usluga_details_screen.dart';
 import 'package:ecommerce_mobile/utils/utils_widgets.dart';
 import 'package:flutter/material.dart';
@@ -30,10 +30,6 @@ class _HomeScreenState extends State<HomeScreen> {
   int? _odabranaKategorija;
   bool _isLoading = true;
 
-  int get _klijentId =>
-      int.tryParse(AuthProvider.accessTokenDecoded?['Id']?.toString() ?? '') ??
-      0;
-
   @override
   void initState() {
     super.initState();
@@ -45,9 +41,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future _ucitaj() async {
     try {
-      final kategorije = await _kategorijaProvider.get(filter: {"pageSize": 1000});
+      final kategorije = await _kategorijaProvider.get(filter: {"pageSize": 100});
       final usluge = await _uslugaProvider.get(filter: {
-        "pageSize": 1000,
+        "pageSize": 100,
         "isActive": true,
         if (_odabranaKategorija != null)
           "uslugaKategorijaId": _odabranaKategorija,
@@ -55,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       List<UslugaPreporuka> preporuke = [];
       try {
-        preporuke = await _recommendationProvider.preporuke(_klijentId, broj: 5);
+        preporuke = await _recommendationProvider.preporuke(broj: 5);
       } catch (_) {
         // preporuke nisu kriticne za rad ekrana - ignorisi gresku
       }
@@ -86,6 +82,18 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text("LuxSalon"),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.campaign_outlined),
+            tooltip: "Novosti",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NovostiScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

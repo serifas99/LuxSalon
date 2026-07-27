@@ -15,6 +15,7 @@ class User {
   final DateTime? lastLoginAt;
   final String? phoneNumber;
   final DateTime? updatedAt;
+  final String? profileImageBase64;
 
   User({
     this.id,
@@ -28,6 +29,7 @@ class User {
     this.lastLoginAt,
     this.phoneNumber,
     this.updatedAt,
+    this.profileImageBase64,
   });
 
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);

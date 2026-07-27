@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:ecommerce_desktop/layouts/master_screen.dart';
 import 'package:ecommerce_desktop/models/user.dart';
 import 'package:ecommerce_desktop/providers/user_provider.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:provider/provider.dart';
@@ -8,7 +11,12 @@ import 'package:provider/provider.dart';
 class UserDetailsScreen extends StatefulWidget {
   final User? user;
 
-  const UserDetailsScreen({super.key, this.user});
+  /// Kad Admin/Frizer uređuje SVOJ vlastiti profil (npr. sa "Profile" stavke u meniju),
+  /// sakrivamo sekciju "Account Status" - da se ne bi slučajno sam deaktivirao i izgubio
+  /// pristup sistemu.
+  final bool hideStatus;
+
+  const UserDetailsScreen({super.key, this.user, this.hideStatus = false});
 
   @override
   State<UserDetailsScreen> createState() => _UserDetailsScreenState();
@@ -20,9 +28,13 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
 
   late UserProvider _userProvider;
 
+  String? _base64Slika;
+
   @override
   void initState() {
     super.initState();
+
+    _base64Slika = widget.user?.profileImageBase64;
 
     _initialValue = {
       'firstName': widget.user?.firstName ?? '',
@@ -38,6 +50,32 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
   }
 
   bool get _isEditing => widget.user != null;
+
+  // Isti obrazac kao mobilna app (profile_settings_screen.dart) - koristi file_picker-ov
+  // XFile (radi identicno na svim platformama, ukljucujuci Windows desktop).
+  Future _pickFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.pickFiles(
+        type: FileType.image,
+      );
+
+      if (result != null) {
+        var file = result.files.first;
+        var bytes = await file.xFile.readAsBytes();
+        final base64String = base64Encode(bytes);
+
+        setState(() {
+          _base64Slika = base64String;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Greška pri odabiru slike: $e")),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,8 +106,10 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                       _buildPersonalSection(theme),
                       const SizedBox(height: 16),
                       _buildAccountSection(theme),
-                      const SizedBox(height: 16),
-                      _buildStatusSection(theme),
+                      if (!widget.hideStatus) ...[
+                        const SizedBox(height: 16),
+                        _buildStatusSection(theme),
+                      ],
                     ],
                   ),
                 ),
@@ -88,20 +128,49 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
         '${widget.user?.firstName ?? ''} ${widget.user?.lastName ?? ''}'.trim();
     return Row(
       children: [
-        CircleAvatar(
-          radius: 32,
-          backgroundColor: theme.colorScheme.primaryContainer,
-          child: _isEditing
-              ? Text(
-                  _initials(widget.user?.firstName, widget.user?.lastName),
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onPrimaryContainer,
+        InkWell(
+          onTap: _pickFile,
+          borderRadius: BorderRadius.circular(100),
+          child: Stack(
+            children: [
+              CircleAvatar(
+                radius: 32,
+                backgroundColor: theme.colorScheme.primaryContainer,
+                backgroundImage: _base64Slika != null
+                    ? MemoryImage(base64Decode(_base64Slika!))
+                    : null,
+                child: _base64Slika != null
+                    ? null
+                    : (_isEditing
+                        ? Text(
+                            _initials(
+                                widget.user?.firstName, widget.user?.lastName),
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          )
+                        : Icon(Icons.person_add_outlined,
+                            size: 28,
+                            color: theme.colorScheme.onPrimaryContainer)),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: theme.colorScheme.surface, width: 1.5),
                   ),
-                )
-              : Icon(Icons.person_add_outlined,
-                  size: 28, color: theme.colorScheme.onPrimaryContainer),
+                  child: Icon(Icons.camera_alt,
+                      size: 12, color: theme.colorScheme.onPrimary),
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(width: 18),
         Column(
@@ -285,6 +354,10 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
 
       if (_isEditing) {
         formData.remove('password');
+      }
+
+      if (_base64Slika != null) {
+        formData['profileImageBase64'] = _base64Slika;
       }
 
       try {

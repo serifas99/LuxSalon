@@ -24,6 +24,7 @@ User _$UserFromJson(Map<String, dynamic> json) => User(
   updatedAt: json['updatedAt'] == null
       ? null
       : DateTime.parse(json['updatedAt'] as String),
+  profileImageBase64: json['profileImageBase64'] as String?,
 );
 
 Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
@@ -38,4 +39,5 @@ Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
   'lastLoginAt': instance.lastLoginAt?.toIso8601String(),
   'phoneNumber': instance.phoneNumber,
   'updatedAt': instance.updatedAt?.toIso8601String(),
+  'profileImageBase64': instance.profileImageBase64,
 };

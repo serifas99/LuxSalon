@@ -1,13 +1,16 @@
 import 'package:ecommerce_mobile/layouts/container_screen.dart';
 import 'package:ecommerce_mobile/providers/auth_provider.dart';
+import 'package:ecommerce_mobile/providers/frizer_ocjena_provider.dart';
 import 'package:ecommerce_mobile/providers/frizer_provider.dart';
 import 'package:ecommerce_mobile/providers/notifikacija_provider.dart';
+import 'package:ecommerce_mobile/providers/obavijest_provider.dart';
 import 'package:ecommerce_mobile/providers/placanje_provider.dart';
 import 'package:ecommerce_mobile/providers/recommendation_provider.dart';
 import 'package:ecommerce_mobile/providers/termin_provider.dart';
 import 'package:ecommerce_mobile/providers/usluga_kategorija_provider.dart';
 import 'package:ecommerce_mobile/providers/usluga_provider.dart';
 import 'package:ecommerce_mobile/providers/user_provider.dart';
+import 'package:ecommerce_mobile/screens/forgot_password_screen.dart';
 import 'package:ecommerce_mobile/services/signalr_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -26,9 +29,11 @@ void main() {
         ChangeNotifierProvider(create: (_)=> UslugaKategorijaProvider()),
         ChangeNotifierProvider(create: (_)=> UslugaProvider()),
         ChangeNotifierProvider(create: (_)=> FrizerProvider()),
+        ChangeNotifierProvider(create: (_)=> FrizerOcjenaProvider()),
         ChangeNotifierProvider(create: (_)=> TerminProvider()),
         ChangeNotifierProvider(create: (_)=> PlacanjeProvider()),
         ChangeNotifierProvider(create: (_)=> NotifikacijaProvider()),
+        ChangeNotifierProvider(create: (_)=> ObavijestProvider()),
         ChangeNotifierProvider(create: (_)=> RecommendationProvider()),
       ],
       child: const MyApp()));
@@ -145,6 +150,20 @@ class LoginPage extends StatelessWidget {
                         border: OutlineInputBorder(),
                       ),
                       obscureText: true,
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ForgotPasswordScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text('Zaboravili ste lozinku?'),
+                      ),
                     ),
                   ],
                 ),

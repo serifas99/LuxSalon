@@ -22,6 +22,9 @@ class _UslugaListState extends State<UslugaList> {
 
   final TextEditingController _nazivController = TextEditingController();
 
+  int _page = 1;
+  static const int _pageSize = 10;
+
   @override
   void initState() {
     super.initState();
@@ -30,15 +33,27 @@ class _UslugaListState extends State<UslugaList> {
   }
 
   Future<void> initTable() async {
+    setState(() => isLoading = true);
     try {
-      var data = await _provider.get(filter: {});
+      var data = await _provider.get(filter: {
+        "naziv": _nazivController.text,
+        "page": _page,
+        "pageSize": _pageSize,
+        "includeTotalCount": true,
+      });
       setState(() {
         result = data;
         isLoading = false;
       });
     } on Exception catch (e) {
+      setState(() => isLoading = false);
       alertBox(context, 'Greška', e.toString());
     }
+  }
+
+  void _idiNaStranicu(int novaStranica) {
+    setState(() => _page = novaStranica);
+    initTable();
   }
 
   @override
@@ -58,11 +73,22 @@ class _UslugaListState extends State<UslugaList> {
   }
 
   Expanded _buildTable() {
+    final totalCount = result?.totalCount ?? 0;
+    final ukupnoStranica =
+        totalCount == 0 ? 1 : ((totalCount - 1) ~/ _pageSize) + 1;
+    final prikazanoOd = totalCount == 0 ? 0 : ((_page - 1) * _pageSize) + 1;
+    final prikazanoDo = totalCount == 0
+        ? 0
+        : (prikazanoOd + (result?.items?.length ?? 0) - 1);
+
     return Expanded(
-      child: SizedBox(
-        width: double.infinity,
-        child: SingleChildScrollView(
-          child: DataTable(
+      child: Column(
+        children: [
+          Expanded(
+            child: SizedBox(
+              width: double.infinity,
+              child: SingleChildScrollView(
+                child: DataTable(
             columns: [
               DataColumn(label: Text("Naziv")),
               DataColumn(label: Text("Kategorija")),
@@ -132,8 +158,33 @@ class _UslugaListState extends State<UslugaList> {
                     )
                     .toList() ??
                 List.empty(),
+                ),
+              ),
+            ),
           ),
-        ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(totalCount == 0
+                  ? "Nema usluga"
+                  : "Prikazano $prikazanoOd do $prikazanoDo od ukupno $totalCount usluga"),
+              const SizedBox(width: 16),
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: _page > 1 ? () => _idiNaStranicu(_page - 1) : null,
+              ),
+              Text("Stranica $_page od $ukupnoStranica"),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: _page < ukupnoStranica
+                    ? () => _idiNaStranicu(_page + 1)
+                    : null,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }
@@ -153,17 +204,9 @@ class _UslugaListState extends State<UslugaList> {
             ),
           ),
           ElevatedButton(
-            onPressed: () async {
-              try {
-                var data = await _provider
-                    .get(filter: {"naziv": _nazivController.text});
-                setState(() {
-                  result = data;
-                  isLoading = false;
-                });
-              } on Exception catch (e) {
-                alertBox(context, 'Greška', e.toString());
-              }
+            onPressed: () {
+              _page = 1;
+              initTable();
             },
             child: Text("Pretraži"),
           ),

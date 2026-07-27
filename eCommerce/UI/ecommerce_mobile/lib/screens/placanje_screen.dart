@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
 import 'package:ecommerce_mobile/models/placanje.dart';
 import 'package:ecommerce_mobile/models/termin.dart';
 import 'package:ecommerce_mobile/providers/placanje_provider.dart';
@@ -9,8 +12,10 @@ import 'package:url_launcher/url_launcher.dart';
 /// Tok placanja:
 /// 1. Kreiraj narudzbu na backendu (Placanje/Kreiraj/{terminId}) -> dobijemo link ka PayPal sandboxu.
 /// 2. Otvorimo taj link u browseru gdje se korisnik uloguje na PayPal (sandbox) nalog i odobri placanje.
-/// 3. Korisnik se vrati u aplikaciju i potvrdi da je odobrio - mi tada zovemo
-///    Placanje/Potvrdi/{paypalOrderId} koje kaptira novac i mijenja status termina.
+/// 3. PayPal automatski vraca korisnika u aplikaciju putem deep-linka (luxsalon://payment/return -
+///    vidi PayPalClient.cs i AndroidManifest.xml) - ovaj ekran to hvata (AppLinks) i AUTOMATSKI
+///    zove Placanje/Potvrdi/{paypalOrderId}, bez potrebe da korisnik rucno klikne "vrati se".
+///    Dugme za rucnu potvrdu ostaje kao fallback ako deep link iz nekog razloga ne stigne.
 class PlacanjeScreen extends StatefulWidget {
   final Termin termin;
 
@@ -22,6 +27,8 @@ class PlacanjeScreen extends StatefulWidget {
 
 class _PlacanjeScreenState extends State<PlacanjeScreen> {
   late PlacanjeProvider _placanjeProvider;
+  final AppLinks _appLinks = AppLinks();
+  StreamSubscription<Uri>? _linkSubscription;
 
   bool _kreiranje = false;
   bool _potvrdjivanje = false;
@@ -33,6 +40,30 @@ class _PlacanjeScreenState extends State<PlacanjeScreen> {
   void initState() {
     super.initState();
     _placanjeProvider = context.read<PlacanjeProvider>();
+    _linkSubscription = _appLinks.uriLinkStream.listen(_obradiDeepLink);
+  }
+
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _obradiDeepLink(Uri uri) {
+    if (uri.scheme != "luxsalon" || uri.host != "payment") return;
+
+    if (uri.path.contains("cancel")) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Plaćanje je otkazano na PayPal stranici.")),
+        );
+      }
+      return;
+    }
+
+    if (uri.path.contains("return") && _paypalOrderId != null && !_potvrdjivanje) {
+      _potvrdiPlacanje();
+    }
   }
 
   Future _kreirajNarudzbu() async {
@@ -130,9 +161,11 @@ class _PlacanjeScreenState extends State<PlacanjeScreen> {
                 ),
               ),
             ] else ...[
-              const Text(
-                "1. Odobrite plaćanje u browseru koji se otvorio (prijavite se na PayPal sandbox nalog).\n"
-                "2. Vratite se ovdje i pritisnite \"Potvrdi plaćanje\".",
+              Text(
+                _potvrdjivanje
+                    ? "Potvrđujemo vaše plaćanje..."
+                    : "Odobrite plaćanje u browseru koji se otvorio (prijavite se na PayPal sandbox nalog). "
+                        "Nakon odobravanja bićete automatski vraćeni u aplikaciju.",
               ),
               const SizedBox(height: 16),
               SizedBox(
@@ -144,17 +177,18 @@ class _PlacanjeScreenState extends State<PlacanjeScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+              // Fallback - ako se iz nekog razloga deep link ne pokrene automatski.
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton.icon(
+                child: TextButton.icon(
                   onPressed: _potvrdjivanje ? null : _potvrdiPlacanje,
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: _potvrdjivanje
+                  icon: _potvrdjivanje
                       ? const SizedBox(
                           height: 18,
                           width: 18,
                           child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text("Potvrdi plaćanje"),
+                      : const Icon(Icons.check_circle_outline),
+                  label: const Text("Nisam automatski vraćen - potvrdi ručno"),
                 ),
               ),
               if (_rezultat != null && _rezultat!.status != "Zavrseno") ...[

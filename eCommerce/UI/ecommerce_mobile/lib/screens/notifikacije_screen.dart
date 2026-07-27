@@ -33,7 +33,7 @@ class _NotifikacijeScreenState extends State<NotifikacijeScreen> {
     try {
       final rezultat = await _notifikacijaProvider.get(filter: {
         "korisnikId": _korisnikId,
-        "pageSize": 1000,
+        "pageSize": 100,
       });
       rezultat.items?.sort((a, b) =>
           (b.createdAt ?? DateTime(2000)).compareTo(a.createdAt ?? DateTime(2000)));

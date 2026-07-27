@@ -6,7 +6,7 @@ services:
     container_name: ecomm-fit-2026
     environment:
       ACCEPT_EULA: Y
-      SA_PASSWORD: qweasd123!
+      SA_PASSWORD: ${SA_PASSWORD}
     ports:
       - "1435:1433"
     expose:
@@ -25,8 +25,49 @@ services:
     image: mailhog/mailhog
     container_name: luxsalon-mailhog
     ports:
-      - "1025:1025"   # SMTP - koristi ga eCommerce.Subscriber za slanje "emailova"
+      - "1025:1025"   # SMTP - koristi ga LuxSalon.Subscriber za slanje "emailova"
       - "8025:8025"   # Web UI - http://localhost:8025 (ovdje se vide poslani emailovi)
+
+  # Backend API - vlastiti kontejner (mikroservisna arhitektura, odvojen od worker-a).
+  # Tajne (JWT, PayPal, RabbitMQ user/pass) dolaze iz LuxSalon.WebAPI/.env - taj fajl
+  # mora postojati lokalno (kopija .env.example) prije "docker compose up".
+  luxsalon-webapi:
+    build:
+      context: .
+      dockerfile: LuxSalon.WebAPI/Dockerfile
+    container_name: luxsalon-webapi
+    env_file:
+      - LuxSalon.WebAPI/.env
+    environment:
+      # Unutar Docker mreze se servisi adresiraju po imenu servisa, ne "localhost"/"1435" -
+      # ovo namjerno nadjacava vrijednosti iz .env (koji je pisan za pokretanje van kontejnera).
+      # NAPOMENA: Database=eCommerce namjerno NIJE mijenjano - to je ime stvarne baze
+      # podataka na SQL Serveru; da smo ga preimenovali, izgubila bi se sva postojeca test data.
+      ConnectionStrings__DefaultConnection: "Server=ecomm-fit-2026,1433;Database=eCommerce;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
+      RabbitMQ__HostName: luxsalon-rabbitmq
+    ports:
+      - "5126:8080"
+    depends_on:
+      - ecomm-fit-2026
+      - luxsalon-rabbitmq
+    restart: unless-stopped
+
+  # Worker servis - zaseban proces/kontejner koji sluša RabbitMQ i salje email
+  # obavjestenja preko MailHog-a (pravi microservice, ne in-process background task).
+  luxsalon-subscriber:
+    build:
+      context: .
+      dockerfile: LuxSalon.Subscriber/Dockerfile
+    container_name: luxsalon-subscriber
+    env_file:
+      - LuxSalon.Subscriber/.env
+    environment:
+      RabbitMQ__HostName: luxsalon-rabbitmq
+      Smtp__Host: luxsalon-mailhog
+    depends_on:
+      - luxsalon-rabbitmq
+      - luxsalon-mailhog
+    restart: unless-stopped
 
 volumes:
   sqlserver_data:

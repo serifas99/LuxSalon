@@ -1,8 +1,10 @@
 import 'package:ecommerce_mobile/models/search_result.dart';
 import 'package:ecommerce_mobile/models/termin.dart';
 import 'package:ecommerce_mobile/providers/auth_provider.dart';
+import 'package:ecommerce_mobile/providers/frizer_ocjena_provider.dart';
 import 'package:ecommerce_mobile/providers/termin_provider.dart';
 import 'package:ecommerce_mobile/screens/placanje_screen.dart';
+import 'package:ecommerce_mobile/utils/api_client_exception.dart';
 import 'package:ecommerce_mobile/utils/utils_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -34,7 +36,7 @@ class _MojiTerminiScreenState extends State<MojiTerminiScreen> {
     try {
       final rezultat = await _terminProvider.get(filter: {
         "klijentId": _klijentId,
-        "pageSize": 1000,
+        "pageSize": 100,
       });
 
       rezultat.items?.sort((a, b) =>
@@ -161,7 +163,8 @@ class _MojiTerminiScreenState extends State<MojiTerminiScreen> {
                                     style: const TextStyle(
                                         fontWeight: FontWeight.bold)),
                                 if (t.status == "Zakazan" ||
-                                    t.status == "Potvrdjen") ...[
+                                    (t.status == "Potvrdjen" &&
+                                        t.placanjeStatus != "Zavrseno")) ...[
                                   const SizedBox(height: 10),
                                   Row(
                                     children: [
@@ -172,22 +175,32 @@ class _MojiTerminiScreenState extends State<MojiTerminiScreen> {
                                               foregroundColor: Colors.red),
                                           child: const Text("Otkaži"),
                                         ),
-                                      const SizedBox(width: 8),
-                                      ElevatedButton.icon(
-                                        onPressed: () async {
-                                          final refresh = await Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  PlacanjeScreen(termin: t),
-                                            ),
-                                          );
-                                          if (refresh == "reload") _ucitaj();
-                                        },
-                                        icon: const Icon(Icons.payment, size: 18),
-                                        label: const Text("Plati"),
-                                      ),
+                                      if (t.placanjeStatus != "Zavrseno") ...[
+                                        const SizedBox(width: 8),
+                                        ElevatedButton.icon(
+                                          onPressed: () async {
+                                            final refresh = await Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    PlacanjeScreen(termin: t),
+                                              ),
+                                            );
+                                            if (refresh == "reload") _ucitaj();
+                                          },
+                                          icon: const Icon(Icons.payment, size: 18),
+                                          label: const Text("Plati"),
+                                        ),
+                                      ],
                                     ],
+                                  ),
+                                ],
+                                if (t.status == "Odradjen") ...[
+                                  const SizedBox(height: 10),
+                                  OutlinedButton.icon(
+                                    onPressed: () => _ocijeni(t),
+                                    icon: const Icon(Icons.star_rate, size: 18),
+                                    label: const Text("Ocijeni frizera"),
                                   ),
                                 ],
                               ],
@@ -223,6 +236,82 @@ class _MojiTerminiScreenState extends State<MojiTerminiScreen> {
     try {
       await _terminProvider.otkazi(t.id!);
       _ucitaj();
+    } on Exception catch (e) {
+      if (mounted) alertBox(context, "Greška", e.toString());
+    }
+  }
+
+  Future _ocijeni(Termin t) async {
+    int odabranaOcjena = 5;
+    final komentarController = TextEditingController();
+
+    final poslati = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text("Ocijenite frizera ${t.frizerImePrezime ?? ''}"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (i) {
+                  final zvijezda = i + 1;
+                  return IconButton(
+                    onPressed: () =>
+                        setDialogState(() => odabranaOcjena = zvijezda),
+                    icon: Icon(
+                      zvijezda <= odabranaOcjena
+                          ? Icons.star
+                          : Icons.star_border,
+                      color: Colors.amber,
+                    ),
+                  );
+                }),
+              ),
+              TextField(
+                controller: komentarController,
+                maxLength: 500,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: "Komentar (opciono)",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text("Otkaži"),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text("Pošalji ocjenu"),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (poslati != true) return;
+
+    try {
+      final ocjenaProvider = context.read<FrizerOcjenaProvider>();
+      await ocjenaProvider.insert({
+        "terminId": t.id,
+        "ocjena": odabranaOcjena,
+        "komentar": komentarController.text.trim().isEmpty
+            ? null
+            : komentarController.text.trim(),
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Hvala na ocjeni!")),
+      );
+    } on ApiClientException catch (e) {
+      if (mounted) alertBox(context, "Greška", e.message);
     } on Exception catch (e) {
       if (mounted) alertBox(context, "Greška", e.toString());
     }

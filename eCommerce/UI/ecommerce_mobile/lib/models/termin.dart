@@ -15,6 +15,11 @@ class Termin {
   final int? trajanjeMinuta;
   final double? cijena;
   final String? status;
+
+  /// Status vezanog Placanja (npr. "Zavrseno") ako postoji, inace null - koristi se
+  /// da se odluci da li jos treba prikazati dugme "Plati" (termin moze biti
+  /// "Potvrdjen" i bez placanja, ako ga frizer/admin rucno potvrdi).
+  final String? placanjeStatus;
   final String? napomena;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -31,6 +36,7 @@ class Termin {
     this.trajanjeMinuta,
     this.cijena,
     this.status,
+    this.placanjeStatus,
     this.napomena,
     this.createdAt,
     this.updatedAt,

@@ -1,13 +1,15 @@
 import 'package:ecommerce_desktop/screens/product_details_screen.dart';
 import 'package:ecommerce_desktop/screens/product_list.dart';
 import 'package:ecommerce_desktop/screens/review_list.dart';
+import 'package:ecommerce_desktop/screens/user_details_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../main.dart';
 import '../providers/auth_provider.dart';
+import '../providers/user_provider.dart';
 import '../screens/category_list.dart';
-import '../screens/user_list.dart';
+import '../screens/klijent_list.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/usluga_kategorija_list.dart';
 import '../screens/usluga_list.dart';
@@ -89,7 +91,7 @@ class _MasterScreenState extends State<MasterScreen> {
               leading: Icon(Icons.people),
               title: Text('Klijenti'),
               onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => UserList()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => KlijentList()));
               },
             ),
             ListTile(
@@ -101,10 +103,28 @@ class _MasterScreenState extends State<MasterScreen> {
             ),
             ListTile(
               leading: Icon(Icons.account_circle),
-              title: Text('Profile'),
-              onTap: () {
-                // Handle Profile navigation
-                Navigator.push(context, MaterialPageRoute(builder: (context)=> testScreen("Profile", "TODO add profile screen")));
+              title: Text('Moj profil'),
+              onTap: () async {
+                Navigator.pop(context); // zatvori drawer prije async poziva
+                try {
+                  final userProvider = context.read<UserProvider>();
+                  final mojId = int.tryParse(
+                      AuthProvider.accessTokenDecoded?['Id']?.toString() ?? '');
+                  if (mojId == null) return;
+                  final ja = await userProvider.getById(mojId);
+                  if (!context.mounted) return;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          UserDetailsScreen(user: ja, hideStatus: true),
+                    ),
+                  );
+                } catch (e) {
+                  if (context.mounted) {
+                    alertBox(context, "Greška", e.toString());
+                  }
+                }
               },
             ),
             ListTile(
@@ -153,13 +173,5 @@ class _MasterScreenState extends State<MasterScreen> {
       ),
       body: widget.child,
       );
-  }
-
-  MasterScreen testScreen(String title, String content) {
-    return MasterScreen(
-      title: title,
-      child: Center(
-                child: Text(content),
-              ));
   }
 }

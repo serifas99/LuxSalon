@@ -26,6 +26,20 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Deep-link povratak sa PayPal (sandbox) stranice nakon odobravanja/otkazivanja
+                 placanja - vidi PayPalClient.cs (return_url/cancel_url) i placanje_screen.dart. -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="luxsalon" android:host="payment"/>
+            </intent-filter>
+            <!-- Deep linkovi se rucno hvataju preko app_links paketa (vidi placanje_screen.dart) -
+                 bez ovog flaga Flutter engine PARALELNO pokusava sam protumaciti isti Intent kao
+                 named route te baca "Could not find a generator for route..." izuzetak. -->
+            <meta-data
+                android:name="flutter_deeplinking_enabled"
+                android:value="false" />
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
