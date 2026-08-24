@@ -82,19 +82,19 @@ namespace LuxSalon.Services
 
             var usluga = await _dbContext.Usluge.FindAsync(request.UslugaId);
             if (usluga == null || !usluga.IsActive)
-                throw new ClinetException("Odabrana usluga ne postoji ili nije aktivna.");
+                throw new ClientException("Odabrana usluga ne postoji ili nije aktivna.");
 
             var frizer = await _dbContext.Frizeri.FindAsync(request.FrizerId);
             if (frizer == null || !frizer.IsActive)
-                throw new ClinetException("Odabrani frizer ne postoji ili nije aktivan.");
+                throw new ClientException("Odabrani frizer ne postoji ili nije aktivan.");
 
             var klijent = await _dbContext.Users.FindAsync(request.KlijentId);
             if (klijent == null)
-                throw new ClinetException("Odabrani klijent ne postoji.");
+                throw new ClientException("Odabrani klijent ne postoji.");
 
             var frizerRadiUslugu = await _dbContext.FrizerUsluge.AnyAsync(fu => fu.FrizerId == request.FrizerId && fu.UslugaId == request.UslugaId);
             if (!frizerRadiUslugu)
-                throw new ClinetException("Odabrani frizer ne izvodi odabranu uslugu.");
+                throw new ClientException("Odabrani frizer ne izvodi odabranu uslugu.");
 
             var trajanje = usluga.TrajanjeMinuta;
             var pocetak = request.DatumVrijeme;
@@ -109,7 +109,7 @@ namespace LuxSalon.Services
                 kraj > t.DatumVrijeme);
 
             if (preklapanje)
-                throw new ClinetException("Frizer vec ima zakazan termin u tom vremenskom periodu.");
+                throw new ClientException("Frizer vec ima zakazan termin u tom vremenskom periodu.");
 
             var termin = new Termin
             {
@@ -189,7 +189,7 @@ namespace LuxSalon.Services
         {
             var usluga = await _dbContext.Usluge.FindAsync(uslugaId);
             if (usluga == null)
-                throw new ClinetException("Odabrana usluga ne postoji.");
+                throw new ClientException("Odabrana usluga ne postoji.");
 
             var radnaVremena = await _dbContext.RadnaVremena
                 .Where(r => r.FrizerId == frizerId)
@@ -242,7 +242,7 @@ namespace LuxSalon.Services
         {
             var usluga = await _dbContext.Usluge.FindAsync(uslugaId);
             if (usluga == null)
-                throw new ClinetException("Odabrana usluga ne postoji.");
+                throw new ClientException("Odabrana usluga ne postoji.");
 
             var radnoVrijeme = await _dbContext.RadnaVremena
                 .FirstOrDefaultAsync(r => r.FrizerId == frizerId && r.DanUSedmici == datum.DayOfWeek);
@@ -275,7 +275,7 @@ namespace LuxSalon.Services
 
             for (var slot = pocetakDana; slot.AddMinutes(trajanjeMinuta) <= krajDana; slot = slot.AddMinutes(KorakSlotaMinuta))
             {
-                if (slot < DateTime.Now)
+                if (slot < DateTime.UtcNow)
                     continue;
 
                 var slotKraj = slot.AddMinutes(trajanjeMinuta);
@@ -300,11 +300,11 @@ namespace LuxSalon.Services
                 return;
 
             if (noviStatus != TerminStatus.Otkazan)
-                throw new ClinetException("Samo osoblje (frizer/admin) moze promijeniti ovaj status termina.");
+                throw new ClientException("Samo osoblje (frizer/admin) moze promijeniti ovaj status termina.");
 
             var korisnikId = _userAccessor.GetUserId();
             if (korisnikId == null || termin.KlijentId != korisnikId.Value)
-                throw new ClinetException("Mozete otkazati samo svoj termin.");
+                throw new ClientException("Mozete otkazati samo svoj termin.");
         }
 
         private async Task<TerminResponse> PromijeniStatusAsync(int id, TerminStatus noviStatus, string poruka, NotifikacijaTip tip)
@@ -316,7 +316,7 @@ namespace LuxSalon.Services
             ProvjeriOvlascenjeZaPromjenuStatusa(termin, noviStatus);
 
             if (!DozvoljeniPrelazi[termin.Status].Contains(noviStatus))
-                throw new ClinetException($"Prelaz iz statusa '{termin.Status}' u '{noviStatus}' nije dozvoljen.");
+                throw new ClientException($"Prelaz iz statusa '{termin.Status}' u '{noviStatus}' nije dozvoljen.");
 
             var prethodniStatus = termin.Status;
             termin.Status = noviStatus;

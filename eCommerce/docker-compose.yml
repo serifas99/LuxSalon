@@ -41,9 +41,10 @@ services:
     environment:
       # Unutar Docker mreze se servisi adresiraju po imenu servisa, ne "localhost"/"1435" -
       # ovo namjerno nadjacava vrijednosti iz .env (koji je pisan za pokretanje van kontejnera).
-      # NAPOMENA: Database=eCommerce namjerno NIJE mijenjano - to je ime stvarne baze
-      # podataka na SQL Serveru; da smo ga preimenovali, izgubila bi se sva postojeca test data.
-      ConnectionStrings__DefaultConnection: "Server=ecomm-fit-2026,1433;Database=eCommerce;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
+      # Baza podataka je imenovana brojem indeksa (190067), bez IB prefiksa, po uputama za
+      # izradu seminarskog rada (3.1). Baza se kreira automatski (EF Core migracije + seed) pri
+      # prvom pokretanju kontejnera - nema potrebe za rucnim kreiranjem ili migracijom podataka.
+      ConnectionStrings__DefaultConnection: "Server=ecomm-fit-2026,1433;Database=190067;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
       RabbitMQ__HostName: luxsalon-rabbitmq
     ports:
       - "5126:8080"

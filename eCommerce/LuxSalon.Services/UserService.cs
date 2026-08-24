@@ -155,14 +155,14 @@ namespace LuxSalon.Services
             }
             catch (FormatException)
             {
-                throw new ClinetException("Slika profila nije ispravno kodirana.");
+                throw new ClientException("Slika profila nije ispravno kodirana.");
             }
 
             if (bajtovi.Length == 0)
-                throw new ClinetException("Slika profila je prazna.");
+                throw new ClientException("Slika profila je prazna.");
 
             if (bajtovi.Length > MaxProfilnaSlikaBajtova)
-                throw new ClinetException("Slika profila ne smije biti veca od 3 MB.");
+                throw new ClientException("Slika profila ne smije biti veca od 3 MB.");
 
             bool jePng = bajtovi.Length >= 8 &&
                 bajtovi[0] == 0x89 && bajtovi[1] == 0x50 && bajtovi[2] == 0x4E && bajtovi[3] == 0x47 &&
@@ -172,7 +172,7 @@ namespace LuxSalon.Services
                 bajtovi[0] == 0xFF && bajtovi[1] == 0xD8 && bajtovi[2] == 0xFF;
 
             if (!jePng && !jeJpeg)
-                throw new ClinetException("Slika profila mora biti u JPEG ili PNG formatu.");
+                throw new ClientException("Slika profila mora biti u JPEG ili PNG formatu.");
         }
 
         public override async Task<UserResponse> InsertAsync(UserInsertRequest request)
@@ -232,7 +232,7 @@ namespace LuxSalon.Services
             {
                 var korisnikId = _userAccessor.GetUserId();
                 if (korisnikId == null || korisnikId.Value != id)
-                    throw new ClinetException("Mozete urediti samo svoj nalog.");
+                    throw new ClientException("Mozete urediti samo svoj nalog.");
             }
 
             await _updateValidator.ValidateAndThrowAsync(request);
@@ -267,7 +267,7 @@ namespace LuxSalon.Services
         {
             // Brisanje naloga je iskljucivo administratorska akcija.
             if (!_userAccessor.IsInRole("Admin"))
-                throw new ClinetException("Samo administrator moze obrisati korisnicki nalog.");
+                throw new ClientException("Samo administrator moze obrisati korisnicki nalog.");
 
             var entity = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (entity == null)

@@ -57,13 +57,13 @@ namespace LuxSalon.Services
 
             var frizer = await _dbContext.Frizeri.FindAsync(request.FrizerId);
             if (frizer == null)
-                throw new ClinetException("Odabrani frizer ne postoji.");
+                throw new ClientException("Odabrani frizer ne postoji.");
 
             var dan = (DayOfWeek)request.DanUSedmici;
 
             var postoji = await _dbContext.RadnaVremena.AnyAsync(r => r.FrizerId == request.FrizerId && r.DanUSedmici == dan);
             if (postoji)
-                throw new ClinetException("Radno vrijeme za taj dan je vec definisano za ovog frizera. Koristite izmjenu umjesto dodavanja.");
+                throw new ClientException("Radno vrijeme za taj dan je vec definisano za ovog frizera. Koristite izmjenu umjesto dodavanja.");
 
             var entity = new RadnoVrijeme
             {

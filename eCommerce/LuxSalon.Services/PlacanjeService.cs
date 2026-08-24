@@ -39,17 +39,17 @@ namespace LuxSalon.Services
 
             var korisnikId = _userAccessor.GetUserId();
             if (korisnikId == null)
-                throw new ClinetException("Korisnik nije prijavljen.");
+                throw new ClientException("Korisnik nije prijavljen.");
 
             if (termin.KlijentId != korisnikId.Value)
-                throw new ClinetException("Mozete platiti samo svoj termin.");
+                throw new ClientException("Mozete platiti samo svoj termin.");
         }
 
         // Refund je iskljucivo akcija osoblja (Admin/Frizer) - klijent ne moze sam sebi vratiti novac.
         private void ProvjeriOvlascenjeZaRefund()
         {
             if (!_userAccessor.IsInRole("Admin") && !_userAccessor.IsInRole("Frizer"))
-                throw new ClinetException("Samo osoblje (frizer/admin) moze izvrsiti povrat novca.");
+                throw new ClientException("Samo osoblje (frizer/admin) moze izvrsiti povrat novca.");
         }
 
         public async Task<PlacanjeKreirajResponse> KreirajAsync(int terminId, string backendBaseUrl)
@@ -61,7 +61,7 @@ namespace LuxSalon.Services
             ProvjeriVlasnistvo(termin);
 
             if (termin.Status == TerminStatus.Otkazan || termin.Status == TerminStatus.NijeSeOdazvao)
-                throw new ClinetException("Ne moze se platiti otkazan termin.");
+                throw new ClientException("Ne moze se platiti otkazan termin.");
 
             // Placanje je 1:1 sa Terminom (baza ima unique index na TerminId), pa ne mozemo
             // dodati novi red za isti termin - ako postoji neuspjeli pokusaj, ponovo ga iskoristimo.
@@ -70,10 +70,10 @@ namespace LuxSalon.Services
             if (postojece != null)
             {
                 if (postojece.Status == PlacanjeStatus.Zavrseno)
-                    throw new ClinetException("Termin je vec placen.");
+                    throw new ClientException("Termin je vec placen.");
 
                 if (postojece.Status == PlacanjeStatus.NaCekanju)
-                    throw new ClinetException("Vec postoji placanje na cekanju za ovaj termin. Zavrsite ili sacekajte to placanje.");
+                    throw new ClientException("Vec postoji placanje na cekanju za ovaj termin. Zavrsite ili sacekajte to placanje.");
 
                 // Status je Neuspjesno - novi pokusaj, prepisujemo isti red.
                 var noviRezultat = await _payPalClient.KreirajNarudzbuAsync(termin.Cijena, $"termin-{termin.Id}", backendBaseUrl);
@@ -139,7 +139,7 @@ namespace LuxSalon.Services
             {
                 placanje.Status = PlacanjeStatus.Neuspjesno;
                 await _dbContext.SaveChangesAsync();
-                throw new ClinetException("Placanje na PayPalu nije uspjelo ili nije odobreno.");
+                throw new ClientException("Placanje na PayPalu nije uspjelo ili nije odobreno.");
             }
 
             placanje.Status = PlacanjeStatus.Zavrseno;
@@ -204,11 +204,11 @@ namespace LuxSalon.Services
                 throw new KeyNotFoundException($"Placanje with id {placanjeId} not found.");
 
             if (placanje.Status != PlacanjeStatus.Zavrseno || string.IsNullOrWhiteSpace(placanje.PaypalTransactionId))
-                throw new ClinetException("Samo zavrseno placanje moze biti vraceno.");
+                throw new ClientException("Samo zavrseno placanje moze biti vraceno.");
 
             var uspjesno = await _payPalClient.VratiNovacAsync(placanje.PaypalTransactionId, placanje.Iznos);
             if (!uspjesno)
-                throw new ClinetException("Povrat novca preko PayPal-a nije uspio.");
+                throw new ClientException("Povrat novca preko PayPal-a nije uspio.");
 
             placanje.Status = PlacanjeStatus.Vraceno;
             placanje.DatumPovrata = DateTime.UtcNow;

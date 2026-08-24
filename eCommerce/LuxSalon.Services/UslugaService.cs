@@ -22,7 +22,7 @@ namespace LuxSalon.Services
         {
             var imaTermina = await _dbContext.Termini.AnyAsync(t => t.UslugaId == id);
             if (imaTermina)
-                throw new ClinetException("Ova usluga se ne moze obrisati jer postoje termini vezani za nju. Umjesto brisanja, deaktivirajte je (Aktivna = Ne).");
+                throw new ClientException("Ova usluga se ne moze obrisati jer postoje termini vezani za nju. Umjesto brisanja, deaktivirajte je (Aktivna = Ne).");
 
             await base.DeleteAsync(id);
         }

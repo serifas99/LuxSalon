@@ -20,12 +20,12 @@ public class TerminController : BaseCRUDController<TerminResponse, TerminSearchO
     // prepisivanjem polja ili trajnim brisanjem zapisa o terminu.
     public override Task<ActionResult<TerminResponse>> Update(int id, [FromBody] TerminUpdateRequest request)
     {
-        throw new LuxSalon.Model.Exceptions.ClinetException("Termin se ne moze direktno uređivati - koristite akcije za promjenu statusa.");
+        throw new LuxSalon.Model.Exceptions.ClientException("Termin se ne moze direktno uređivati - koristite akcije za promjenu statusa.");
     }
 
     public override Task<IActionResult> Delete(int id)
     {
-        throw new LuxSalon.Model.Exceptions.ClinetException("Termin se ne moze trajno obrisati - koristite otkazivanje.");
+        throw new LuxSalon.Model.Exceptions.ClientException("Termin se ne moze trajno obrisati - koristite otkazivanje.");
     }
 
     [HttpPost("{id}/Potvrdi")]
