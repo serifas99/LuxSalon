@@ -101,7 +101,7 @@ dotnet run
 ```
 cd eCommerce/UI/ecommerce_desktop
 flutter pub get
-flutter run -d windows
+flutter run -d windows --dart-define=API_BASE_URL=http://localhost:5126
 ```
 
 ### 5. Mobilna aplikacija
@@ -109,10 +109,9 @@ flutter run -d windows
 ```
 cd eCommerce/UI/ecommerce_mobile
 flutter pub get
-flutter run
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5126
 ```
 
-(Ako nema Android emulatora, može i `flutter run -d web-server --dart-define=BASE_URL=http://localhost:5126/Access --dart-define=baseUrl=http://localhost:5126/`)
 
 ## Test korisnici
 

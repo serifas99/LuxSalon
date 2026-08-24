@@ -22,7 +22,7 @@ class SignalRService {
     // njega - BaseProvider._baseUrl se postavlja tek kad se prvi put upotrijebi neki
     // provider (lazy), a SignalR se konektuje odmah nakon logina, prije toga.
     const baseUrl = String.fromEnvironment(
-      "baseUrl",
+      "API_BASE_URL",
       defaultValue: "http://10.0.2.2:5126/",
     );
     final hubUrl = "${baseUrl}hubs/notifikacije";

@@ -21,7 +21,7 @@ class AuthProvider extends ChangeNotifier {
   AuthProvider() {
     // Ista "baseUrl" --dart-define varijabla kao BaseProvider/SignalRService - ranije je ovdje
     // bio drugaciji kljuc ("BASE_URL"), pa promjena baseUrl-a pri pokretanju nije uticala na login.
-    _baseUrl = const String.fromEnvironment("baseUrl", defaultValue: "http://10.0.2.2:5126/");
+    _baseUrl = const String.fromEnvironment("API_BASE_URL", defaultValue: "http://10.0.2.2:5126/");
   }
 
 
