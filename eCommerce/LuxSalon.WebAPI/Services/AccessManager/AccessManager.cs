@@ -42,13 +42,13 @@ namespace LuxSalon.WebAPI.Services.AccessManager
 
             if (user == null)
             {
-                throw new ClinetException("Pogrešno korisničko ime ili lozinka.");
+                throw new ClientException("Pogrešno korisničko ime ili lozinka.");
             }
 
             var validPassword = _cryptoService.Verify(user.PasswordHash, user.PasswordSalt, request.Password);
             if (!validPassword)
             {
-                throw new ClinetException("Pogrešno korisničko ime ili lozinka.");
+                throw new ClientException("Pogrešno korisničko ime ili lozinka.");
             }
 
             var accessToken = GenerateToken(user);
@@ -74,31 +74,31 @@ namespace LuxSalon.WebAPI.Services.AccessManager
         {
             if (string.IsNullOrEmpty(request.RefreshToken))
             {
-                throw new ClinetException("Refresh token is required");
+                throw new ClientException("Refresh token is required");
             }
 
             var refreshToken = await _refreshTokenService.GetStoredTokenAsync(request.RefreshToken);
 
             if (refreshToken == null)
             {
-                throw new ClinetException("Invalid refresh token");
+                throw new ClientException("Invalid refresh token");
             }
 
             if (refreshToken.ExpiresAt < DateTime.UtcNow)
             {
-                throw new ClinetException("Refresh token has expired");
+                throw new ClientException("Refresh token has expired");
             }
 
             var user = await _userService.GetWithRoleByIdAsync(refreshToken.UserId);
 
             if (user == null)
             {
-                throw new ClinetException("User not found");
+                throw new ClientException("User not found");
             }
 
             if (!user.IsActive)
             {
-                throw new ClinetException("User is not active");
+                throw new ClientException("User is not active");
             }
 
             await _refreshTokenService.DeleteAllUserRefreshTokensAsync(user.Id);
@@ -166,15 +166,15 @@ namespace LuxSalon.WebAPI.Services.AccessManager
         public async Task ResetPasswordAsync(ResetPasswordRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword != request.ConfirmNewPassword)
-                throw new ClinetException("Nova lozinka i potvrda lozinke se ne podudaraju.");
+                throw new ClientException("Nova lozinka i potvrda lozinke se ne podudaraju.");
 
             if (request.NewPassword.Length < 6)
-                throw new ClinetException("Nova lozinka mora imati najmanje 6 karaktera.");
+                throw new ClientException("Nova lozinka mora imati najmanje 6 karaktera.");
 
             var email = (request.Email ?? string.Empty).Trim();
             var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
             if (user == null)
-                throw new ClinetException("Neispravan ili istekao kod.");
+                throw new ClientException("Neispravan ili istekao kod.");
 
             var kandidati = await _dbContext.PasswordResetCodes
                 .Where(k => k.UserId == user.Id && !k.IsUsed && k.ExpiresAt > DateTime.UtcNow)
@@ -183,7 +183,7 @@ namespace LuxSalon.WebAPI.Services.AccessManager
 
             var validan = kandidati.FirstOrDefault(k => _cryptoService.Verify(k.CodeHash, k.CodeSalt, request.Code ?? string.Empty));
             if (validan == null)
-                throw new ClinetException("Neispravan ili istekao kod.");
+                throw new ClientException("Neispravan ili istekao kod.");
 
             validan.IsUsed = true;
 

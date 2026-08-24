@@ -67,21 +67,21 @@ namespace LuxSalon.Services
 
             var klijentId = _userAccessor.GetUserId();
             if (klijentId == null)
-                throw new ClinetException("Korisnik nije prijavljen.");
+                throw new ClientException("Korisnik nije prijavljen.");
 
             var termin = await _dbContext.Termini.FindAsync(request.TerminId);
             if (termin == null)
                 throw new KeyNotFoundException($"Termin with id {request.TerminId} not found.");
 
             if (termin.KlijentId != klijentId.Value)
-                throw new ClinetException("Mozete ocijeniti samo svoj termin.");
+                throw new ClientException("Mozete ocijeniti samo svoj termin.");
 
             if (termin.Status != TerminStatus.Odradjen)
-                throw new ClinetException("Frizera je moguce ocijeniti tek nakon odradjenog termina.");
+                throw new ClientException("Frizera je moguce ocijeniti tek nakon odradjenog termina.");
 
             var postoji = await _dbContext.FrizerOcjene.AnyAsync(o => o.TerminId == request.TerminId);
             if (postoji)
-                throw new ClinetException("Ovaj termin je vec ocijenjen.");
+                throw new ClientException("Ovaj termin je vec ocijenjen.");
 
             var ocjena = new FrizerOcjena
             {
@@ -106,7 +106,7 @@ namespace LuxSalon.Services
                 throw new KeyNotFoundException($"FrizerOcjena with id {id} not found.");
 
             if (!_userAccessor.IsInRole("Admin") && entity.KlijentId != _userAccessor.GetUserId())
-                throw new ClinetException("Mozete urediti samo svoju ocjenu.");
+                throw new ClientException("Mozete urediti samo svoju ocjenu.");
 
             return await base.UpdateAsync(id, request);
         }
@@ -118,7 +118,7 @@ namespace LuxSalon.Services
                 throw new KeyNotFoundException($"FrizerOcjena with id {id} not found.");
 
             if (!_userAccessor.IsInRole("Admin") && entity.KlijentId != _userAccessor.GetUserId())
-                throw new ClinetException("Mozete obrisati samo svoju ocjenu.");
+                throw new ClientException("Mozete obrisati samo svoju ocjenu.");
 
             await base.DeleteAsync(id);
         }

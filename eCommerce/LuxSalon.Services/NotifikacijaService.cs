@@ -42,7 +42,7 @@ namespace LuxSalon.Services
                 throw new KeyNotFoundException($"Notifikacija with id {id} not found.");
 
             if (!_userAccessor.IsInRole("Admin") && notifikacija.KorisnikId != _userAccessor.GetUserId())
-                throw new LuxSalon.Model.Exceptions.ClinetException("Mozete oznaciti procitanim samo svoju notifikaciju.");
+                throw new LuxSalon.Model.Exceptions.ClientException("Mozete oznaciti procitanim samo svoju notifikaciju.");
 
             notifikacija.Procitano = true;
             await _dbContext.SaveChangesAsync();

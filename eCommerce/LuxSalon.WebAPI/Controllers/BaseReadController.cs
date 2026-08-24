@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using LuxSalon.Services;
 using LuxSalon.Model.SearchObjects;
 using LuxSalon.Model.Responses;
-using Microsoft.AspNetCore.Authorization;
 
 namespace LuxSalon.WebAPI.Controllers;
 
@@ -12,7 +11,6 @@ namespace LuxSalon.WebAPI.Controllers;
 /// <typeparam name="TResponse">The response model type</typeparam>
 /// <typeparam name="TSearch">The search/filter object type</typeparam>
 /// <typeparam name="TService">The service interface type implementing IBaseReadService</typeparam>
-//[Authorize]
 [ApiController]
 [Route("[controller]")]
 public abstract class BaseReadController<TResponse, TSearch, TService> : ControllerBase

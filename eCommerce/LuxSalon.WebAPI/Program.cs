@@ -230,12 +230,28 @@ builder.Services.AddSwaggerGen(
     });
 
 // Dozvoljava Flutter web (browser) build-u da poziva API - desktop/mobile (native) build ne prolazi kroz CORS,
-// ali web build izvrsava fetch pozive iz browsera pa treba eksplicitnu dozvolu. OK za lokalni razvoj/seminarski.
+// ali web build izvrsava fetch pozive iz browsera pa treba eksplicitnu dozvolu.
+// Origins su eksplicitno navedeni (upute 3.4 - CORS ne smije koristiti AllowAnyOrigin), a
+// citaju se iz .env varijable AllowedOrigins (comma-separated) sa razumnim default listom
+// za lokalni razvoj ako varijabla nije postavljena.
+var allowedOriginsRaw = Environment.GetEnvironmentVariable("AllowedOrigins");
+var allowedOrigins = !string.IsNullOrWhiteSpace(allowedOriginsRaw)
+    ? allowedOriginsRaw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    : new[]
+    {
+        "http://localhost:5000",
+        "http://localhost:3000",
+        "http://localhost:8080",
+        "http://127.0.0.1:5000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8080"
+    };
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+        policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
     });
 });
 
